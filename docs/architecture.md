@@ -2,7 +2,7 @@
 
 ## Components
 
-```
+```text
 ┌─────────────────────┐        ┌──────────────────────┐
 │ Aurora PostgreSQL    │        │ AWS CloudWatch        │
 │ cluster (writer +    │        │ (AWS/RDS namespace)   │

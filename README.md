@@ -29,7 +29,7 @@ version-bump policy.
 
 ## What's in this repository
 
-```
+```text
 sql/                      Least-privilege pg_exporter role (pg_monitor-based)
 iam/                      Least-privilege IAM policy for YACE + docs on why
 exporters/postgres_exporter/   Env template, optional queries.yaml (deprecated mechanism), config

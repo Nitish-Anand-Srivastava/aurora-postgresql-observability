@@ -29,6 +29,7 @@ Please **do not open a public GitHub issue** for security reports. Instead:
    organization/user profile that owns this repository.
 
 Include:
+
 - The file(s) and line(s) affected.
 - Why the current content is unsafe (e.g., "this looks like a live account ID" or "this IAM policy grants
   `*:*`").

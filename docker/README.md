@@ -32,6 +32,7 @@ docker compose up -d
 ```
 
 Then open:
+
 - Grafana: <http://localhost:3000> (user `admin`; credential stored in
   `secrets/grafana_admin_password.txt`, not printed here)
 - Prometheus: <http://localhost:9090>

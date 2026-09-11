@@ -8,6 +8,7 @@ Production Linux deployment for the two exporters as hardened, unprivileged syst
 | `yace.service` | Scrapes `AWS/RDS` CloudWatch metrics | `../exporters/yace/config.yml` | `../exporters/yace/yace.env.template` |
 
 Both units:
+
 - Run as a dedicated, unprivileged, non-login system user.
 - Read secrets only from files/environment referenced by `EnvironmentFile=`, never from the unit
   file itself or from tracked configuration.

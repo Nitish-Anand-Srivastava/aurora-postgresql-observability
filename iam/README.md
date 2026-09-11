@@ -17,7 +17,7 @@ Per the authoritative upstream list of required permissions in the YACE README
 (<https://github.com/prometheus-community/yet-another-cloudwatch-exporter#authentication>), the **bare
 minimum** permissions for static and discovery jobs are:
 
-```
+```text
 tag:GetResources
 cloudwatch:GetMetricData
 cloudwatch:GetMetricStatistics

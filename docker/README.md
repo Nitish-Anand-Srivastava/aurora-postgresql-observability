@@ -24,7 +24,7 @@ CloudWatch authentication errors (because no AWS credentials are present) and si
 ```powershell
 cd docker
 Copy-Item secrets\postgres_superuser_password.txt.example secrets\postgres_superuser_password.txt
-Copy-Item secrets\pg_exporter_password.txt.example secrets\pg_exporter_password.txt
+Copy-Item secrets\postgres_exporter_password.txt.example secrets\postgres_exporter_password.txt
 Copy-Item secrets\grafana_admin_password.txt.example secrets\grafana_admin_password.txt
 # Edit the three copied files to use non-default passwords for anything beyond a throwaway
 # local sandbox.

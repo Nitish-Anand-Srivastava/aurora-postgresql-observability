@@ -26,8 +26,9 @@ jobs:
 
       - name: Run full validation suite
         # Runs YAML/JSON syntax, Grafana dashboard structure + metric provenance, Prometheus
-        # config/rules/unit tests (promtool v3.14.0, downloaded on demand), a shell linter,
-        # Markdown link checking, and a secret-pattern scan. See scripts/validate.py.
+        # config/rules/unit tests (promtool v3.14.0, downloaded on demand), database-role
+        # consistency, a shell linter, Markdown link checking, and a secret-pattern scan.
+        # See scripts/validate.py.
         run: python scripts/validate.py
 
   actionlint:

@@ -28,7 +28,8 @@ For how to report a vulnerability *in this repository's content*, see
 
 ## Database access: least privilege
 
-[`sql/create_monitoring_role.sql`](../sql/create_monitoring_role.sql) creates a `pg_exporter` role
+[`sql/create_monitoring_role.sql`](../sql/create_monitoring_role.sql) creates a
+`postgres_exporter` role
 that:
 
 - Is granted the built-in `pg_monitor` role (bundles `pg_read_all_settings`, `pg_read_all_stats`,

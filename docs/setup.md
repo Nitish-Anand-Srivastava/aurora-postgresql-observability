@@ -71,7 +71,7 @@ sudo install -o root -g postgres_exporter -m 0640 \
   /tmp/rds-global-bundle.pem /etc/postgres_exporter/global-bundle.pem
 rm /tmp/rds-global-bundle.pem
 # edit /etc/postgres_exporter/postgres_exporter.env: set DATA_SOURCE_URI to this instance's
-# endpoint, DATA_SOURCE_USER=pg_exporter
+# endpoint, DATA_SOURCE_USER=postgres_exporter
 printf '%s' 'REPLACE_WITH_REAL_PASSWORD' | sudo tee /etc/postgres_exporter/pgpassword >/dev/null
 sudo chmod 0400 /etc/postgres_exporter/pgpassword
 sudo chown postgres_exporter:postgres_exporter /etc/postgres_exporter/pgpassword

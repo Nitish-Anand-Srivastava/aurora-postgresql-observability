@@ -63,4 +63,5 @@ aws iam attach-role-policy \
 ```
 
 Do not attach this policy to the Aurora PostgreSQL role or database user — it is an AWS IAM policy for the
-YACE process's execution identity, unrelated to the SQL-level `pg_exporter` role in `sql/create_monitoring_role.sql`.
+YACE process's execution identity, unrelated to the SQL-level `postgres_exporter` role in
+`sql/create_monitoring_role.sql`.

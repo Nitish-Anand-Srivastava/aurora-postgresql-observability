@@ -13,7 +13,7 @@
 # Usage:
 #   cd docker
 #   cp secrets/postgres_superuser_password.txt.example secrets/postgres_superuser_password.txt
-#   cp secrets/pg_exporter_password.txt.example secrets/pg_exporter_password.txt
+#   cp secrets/postgres_exporter_password.txt.example secrets/postgres_exporter_password.txt
 #   cp secrets/grafana_admin_password.txt.example secrets/grafana_admin_password.txt
 #   docker compose up -d
 #   open http://localhost:3000       (Grafana; default admin/admin, change on first login)
@@ -51,7 +51,8 @@ services:
       timeout: 5s
       retries: 10
 
-  # One-shot job that sets the pg_exporter role's password from the same local-only secret file
+  # One-shot job that sets the postgres_exporter role's password from the same local-only secret
+  # file
   # postgres_exporter reads, since `CREATE ROLE ... WITH LOGIN` in create_monitoring_role.sql
   # deliberately does not set a password (see the SQL file's header comment).
   postgres-init-password:
@@ -64,14 +65,14 @@ services:
       PGUSER: postgres
     secrets:
       - postgres_superuser_password
-      - pg_exporter_password
+      - postgres_exporter_password
     entrypoint: ["/bin/sh", "-c"]
     command:
       - >
         : "placeholder runtime password from secret file"; export PGPASSWORD="$$(cat /run/secrets/postgres_superuser_password)" &&
         psql -v ON_ERROR_STOP=1
-        --set=placeholder_exporter_password="$$(cat /run/secrets/pg_exporter_password)"
-        -c "ALTER ROLE pg_exporter WITH PASSWORD :'placeholder_exporter_password'"
+        --set=placeholder_exporter_password="$$(cat /run/secrets/postgres_exporter_password)"
+        -c "ALTER ROLE postgres_exporter WITH PASSWORD :'placeholder_exporter_password'"
     restart: "no"
 
   postgres_exporter:
@@ -82,8 +83,8 @@ services:
         condition: service_completed_successfully
     environment:
       DATA_SOURCE_URI: "postgres:5432/postgres?sslmode=disable"
-      DATA_SOURCE_USER: "pg_exporter"
-      DATA_SOURCE_PASS_FILE: "/run/secrets/pg_exporter_password"
+      DATA_SOURCE_USER: "postgres_exporter"
+      DATA_SOURCE_PASS_FILE: "/run/secrets/postgres_exporter_password"
       PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
     command:
       - "--collector.database"
@@ -104,7 +105,7 @@ services:
       - "--collector.database_wraparound"
       - "--config.file="
     secrets:
-      - pg_exporter_password
+      - postgres_exporter_password
     ports:
       - "127.0.0.1:9187:9187"
 
@@ -172,8 +173,8 @@ services:
 secrets:
   postgres_superuser_password:
     file: ./secrets/postgres_superuser_password.txt
-  pg_exporter_password:
-    file: ./secrets/pg_exporter_password.txt
+  postgres_exporter_password:
+    file: ./secrets/postgres_exporter_password.txt
   grafana_admin_password:
     file: ./secrets/grafana_admin_password.txt
 

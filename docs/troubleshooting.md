@@ -13,10 +13,10 @@ to/ping the PostgreSQL instance.
 1. Check the instance's status in the AWS console / `aws rds describe-db-instances` -- is it
    rebooting, failing over, or in `storage-full`?
 2. From the exporter host, try connecting directly: `psql "host=<endpoint> dbname=postgres
-   sslmode=verify-full" -U pg_exporter` -- does it hang (network/security group issue) or reject
-   auth (credential/role issue)?
+   sslmode=verify-full" -U postgres_exporter` -- does it hang (network/security group issue) or
+   reject auth (credential/role issue)?
 3. Check security group / network ACL changes made around the alert's start time.
-4. Check `pg_exporter`'s password hasn't expired/rotated without updating
+4. Check `postgres_exporter`'s password hasn't expired/rotated without updating
    `/etc/postgres_exporter/pgpassword`.
 5. If this fired during a **planned failover**, this is expected for the old writer's exporter
    instance briefly; confirm the *new* writer's `pg_up` is healthy.
@@ -40,10 +40,10 @@ otherwise healthy.
 
 1. Check exporter logs for the specific collector's error (`journalctl -u postgres_exporter |
    grep <collector>`).
-2. Common causes: the `pg_exporter` role is missing a grant needed by that collector (re-run
-   `sql/create_monitoring_role.sql`), the collector requires a PostgreSQL version this instance
-   doesn't have (e.g. `stat_checkpointer` needs 17+), or `pg_stat_statements` isn't created for the
-   `stat_statements` collector.
+2. Common causes: the `postgres_exporter` role is missing a grant needed by that collector
+   (re-run `sql/create_monitoring_role.sql`), the collector requires a PostgreSQL version this
+   instance doesn't have (e.g. `stat_checkpointer` needs 17+), or `pg_stat_statements` isn't
+   created for the `stat_statements` collector.
 3. This does not page as critical because other collectors (and `pg_up`) still functioning means
    most of the dashboard remains accurate; treat as a data-quality issue to fix during business
    hours.

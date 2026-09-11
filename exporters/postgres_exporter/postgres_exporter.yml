@@ -18,7 +18,7 @@
 #   aurora_pg: # arbitrary module name referenced by ?auth_module=aurora_pg
 #     type: userpass
 #     userpass:
-#       username: pg_exporter
+#       username: postgres_exporter
 #       password: "REPLACE_AT_DEPLOY_TIME_DO_NOT_COMMIT"
 #     options:
 #       sslmode: verify-full

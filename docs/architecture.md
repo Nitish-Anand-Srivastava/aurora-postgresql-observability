@@ -120,10 +120,10 @@ This design is documented for completeness only -- it is not implemented, wired 
   from a file outside version control; YACE reads AWS credentials via the SDK default credential
   chain (instance role, or a gitignored shared credentials file for local validation only). See
   `docs/security.md`.
-- **postgres_exporter connects directly to Aurora** using the least-privilege `pg_exporter` SQL
-  role (`sql/create_monitoring_role.sql`), typically over TLS (`sslmode=verify-full`) from within
-  the same VPC or via a bastion/PrivateLink, depending on your network topology (out of scope for
-  this repo).
+- **postgres_exporter connects directly to Aurora** using the least-privilege `postgres_exporter`
+  SQL role (`sql/create_monitoring_role.sql`), typically over TLS (`sslmode=verify-full`) from
+  within the same VPC or via a bastion/PrivateLink, depending on your network topology (out of
+  scope for this repo).
 - **YACE calls the AWS CloudWatch and Resource Groups Tagging APIs** using the IAM policy in
   `iam/yace-readonly-policy.json`. It never connects to the database directly.
 - **Prometheus scrapes both exporters over plain HTTP on private networks** in the reference

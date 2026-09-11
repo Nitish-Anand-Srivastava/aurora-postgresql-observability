@@ -31,6 +31,7 @@ CHECKS = {
     "prometheus": "check_prometheus",
     "shell": "check_shell",
     "markdown": "check_markdown_links",
+    "postgres": "check_postgres",
     "secrets": "check_secrets",
 }
 

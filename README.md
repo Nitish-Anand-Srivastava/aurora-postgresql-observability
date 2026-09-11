@@ -30,7 +30,7 @@ version-bump policy.
 ## What's in this repository
 
 ```text
-sql/                      Least-privilege pg_exporter role (pg_monitor-based)
+sql/                      Least-privilege postgres_exporter role (pg_monitor-based)
 iam/                      Least-privilege IAM policy for YACE + docs on why
 exporters/postgres_exporter/   Env template, optional queries.yaml (deprecated mechanism), config
 exporters/yace/           YACE config.yml (instance + cluster level AWS/RDS jobs), env template
@@ -60,10 +60,11 @@ python scripts/validate.py       # or: make validate
 
 Runs YAML/JSON syntax checks, Grafana dashboard structural + metric-provenance checks, Prometheus
 config/rules/unit-test checks (via a pinned `promtool`, downloaded on demand into a gitignored
-`tools/` directory), a shell-script linter, best-effort Markdown link checking, and a secret-
-pattern scan -- all without Docker, without live credentials, and without requiring PyYAML (though
-installing `scripts/requirements.txt` upgrades YAML validation from a fallback heuristic to full
-parsing). CI (`.github/workflows/ci.yml`) runs the identical entrypoint.
+`tools/` directory), database-role consistency checks, a shell-script linter, best-effort Markdown
+link checking, and a secret-pattern scan -- all without Docker, without live credentials, and
+without requiring PyYAML (though installing `scripts/requirements.txt` upgrades YAML validation
+from a fallback heuristic to full parsing). CI (`.github/workflows/ci.yml`) runs the identical
+entrypoint.
 
 ## No secrets, ever
 

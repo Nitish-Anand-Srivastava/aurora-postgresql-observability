@@ -19,28 +19,28 @@
 
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'pg_exporter') THEN
-        CREATE ROLE pg_exporter WITH LOGIN;
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'postgres_exporter') THEN
+        CREATE ROLE postgres_exporter WITH LOGIN;
     END IF;
 END
 $$;
 
 -- Do not let this role create objects in the public schema, own tables, or bypass RLS.
-ALTER ROLE pg_exporter SET log_min_duration_statement = -1;
-ALTER ROLE pg_exporter SET lock_timeout = '2s';
-ALTER ROLE pg_exporter SET statement_timeout = '30s';
+ALTER ROLE postgres_exporter SET log_min_duration_statement = -1;
+ALTER ROLE postgres_exporter SET lock_timeout = '2s';
+ALTER ROLE postgres_exporter SET statement_timeout = '30s';
 
 -- pg_monitor grants read access to pg_stat_*, pg_settings, and other monitoring views/functions
 -- without granting access to user table contents.
-GRANT pg_monitor TO pg_exporter;
+GRANT pg_monitor TO postgres_exporter;
 
 -- Needed so the exporter's connection/auth check and per-database collectors
 -- (pg_stat_database, pg_database_wraparound, pg_locks, etc.) can enumerate/connect to each
 -- database it is configured to scrape. Grant CONNECT explicitly per database if you scrape more
 -- than the default database; CONNECT does not grant access to table contents.
-GRANT CONNECT ON DATABASE postgres TO pg_exporter;
+GRANT CONNECT ON DATABASE postgres TO postgres_exporter;
 -- Repeat for each additional application database, e.g.:
--- GRANT CONNECT ON DATABASE app_db TO pg_exporter;
+-- GRANT CONNECT ON DATABASE app_db TO postgres_exporter;
 
 -- Optional: required ONLY if you enable the pg_stat_statements collector
 -- (--collector.stat_statements, disabled by default -- see docs/metrics-reference.md).
@@ -49,6 +49,6 @@ GRANT CONNECT ON DATABASE postgres TO pg_exporter;
 --   CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 -- pg_monitor already grants SELECT on pg_stat_statements via pg_read_all_stats since PG 15;
 -- on PostgreSQL 13/14 grant explicitly instead:
--- GRANT SELECT ON pg_stat_statements TO pg_exporter;
+-- GRANT SELECT ON pg_stat_statements TO postgres_exporter;
 
-COMMENT ON ROLE pg_exporter IS 'Least-privilege read-only role for postgres_exporter (pg_monitor + CONNECT only). Managed in sql/create_monitoring_role.sql.';
+COMMENT ON ROLE postgres_exporter IS 'Least-privilege read-only role for postgres_exporter (pg_monitor + CONNECT only). Managed in sql/create_monitoring_role.sql.';

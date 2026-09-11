@@ -1,0 +1,86 @@
+# systemd unit for prometheus-community/postgres_exporter v0.20.1
+# https://github.com/prometheus-community/postgres_exporter/releases/tag/v0.20.1
+#
+# Install:
+#   sudo useradd --system --no-create-home --shell /usr/sbin/nologin postgres_exporter
+#   sudo install -d -o postgres_exporter -g postgres_exporter -m 0750 /etc/postgres_exporter
+#   sudo install -o postgres_exporter -g postgres_exporter -m 0640 postgres_exporter.env.template /etc/postgres_exporter/postgres_exporter.env
+#   # edit /etc/postgres_exporter/postgres_exporter.env with real (non-committed) values
+#   echo -n 'REPLACE_ME' | sudo tee /etc/postgres_exporter/pgpassword >/dev/null
+#   sudo chmod 0400 /etc/postgres_exporter/pgpassword
+#   sudo chown postgres_exporter:postgres_exporter /etc/postgres_exporter/pgpassword
+#   sudo cp queries.yaml /etc/postgres_exporter/queries.yaml   # optional, only if extend.query-path is used
+#   sudo cp postgres_exporter.yml /etc/postgres_exporter/postgres_exporter.yml  # optional multi-target only
+#   # download+verify the pinned binary from the authoritative release page above, then:
+#   sudo install -o root -g root -m 0755 postgres_exporter /usr/local/bin/postgres_exporter
+#   sudo cp postgres_exporter.service /etc/systemd/system/postgres_exporter.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now postgres_exporter.service
+
+[Unit]
+Description=Prometheus exporter for PostgreSQL / Aurora PostgreSQL metrics (postgres_exporter v0.20.1)
+Documentation=https://github.com/prometheus-community/postgres_exporter
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=postgres_exporter
+Group=postgres_exporter
+EnvironmentFile=/etc/postgres_exporter/postgres_exporter.env
+ExecStart=/usr/local/bin/postgres_exporter \
+  --web.listen-address=0.0.0.0:9187 \
+  --config.file="" \
+  --collector.database \
+  --collector.locks \
+  --collector.replication \
+  --collector.replication_slots \
+  --collector.settings \
+  --collector.stat_activity \
+  --collector.stat_archiver \
+  --collector.stat_bgwriter \
+  --collector.stat_checkpointer \
+  --collector.stat_database \
+  --collector.stat_user_tables \
+  --collector.statio_user_tables \
+  --collector.stat_progress_vacuum \
+  --collector.stat_replication \
+  --collector.wal \
+  --collector.database_wraparound \
+  --no-collector.stat_statements \
+  --no-collector.long_running_transactions \
+  --no-collector.process_idle \
+  --no-collector.stat_wal_receiver \
+  --no-collector.postmaster \
+  --no-collector.xlog_location \
+  --no-collector.statio_user_indexes
+
+# --collector.stat_checkpointer requires PostgreSQL 17+ (this stack targets Aurora PostgreSQL
+#   17+); the collector self-disables with a log warning on older engines instead of failing.
+# --collector.database_wraparound is disabled upstream by default but is explicitly enabled here
+#   because it feeds the XID wraparound risk alert in prometheus/rules/alerts.yml.
+# --collector.stat_statements, --collector.long_running_transactions, --collector.process_idle,
+#   --collector.stat_wal_receiver, --collector.postmaster, --collector.xlog_location, and
+#   --collector.statio_user_indexes stay OFF by default: stat_statements is high-cardinality and
+#   requires the pg_stat_statements extension (see sql/create_monitoring_role.sql); the others are
+#   niche/experimental upstream. Flip the corresponding --no-collector.* to --collector.* (and
+#   remove the --no- entry) to opt in; see docs/metrics-reference.md for what each adds.
+# The exporter listens on all interfaces so a separate Prometheus host can scrape it. Restrict
+# TCP/9187 to Prometheus with host/VPC firewall rules, or front it with TLS/mTLS as documented in
+# docs/security.md. Bind to 127.0.0.1 only when Prometheus or a reverse proxy is co-located.
+
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+MemoryDenyWriteExecute=true
+
+[Install]
+WantedBy=multi-user.target

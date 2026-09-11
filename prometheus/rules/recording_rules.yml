@@ -1,0 +1,114 @@
+# Recording rules for the Aurora PostgreSQL observability dashboard and alerts.
+#
+# Every input metric here is emitted by either:
+#   - prometheus-community/postgres_exporter v0.20.1 default (or explicitly enabled, see
+#     systemd/postgres_exporter.service) collectors, or
+#   - prometheus-community/yet-another-cloudwatch-exporter v0.67.0 per exporters/yace/config.yml
+#
+# Rules that depend on an OPTIONAL collector (disabled by default upstream, or only enabled by
+# this repo's systemd unit) are annotated inline.
+groups:
+  - name: aurora_postgresql_recording_rules
+    interval: 1m
+    rules:
+      # --- Availability ---
+      - record: aurora:pg_up:min
+        expr: min by (cluster, instance, role) (pg_up)
+
+      # --- Connections ---
+      - record: aurora:connections_used:sum
+        expr: sum by (cluster, instance) (pg_stat_activity_count)
+
+      - record: aurora:connections_used_ratio
+        # Requires the `settings` collector (enabled by default) to expose pg_settings_max_connections.
+        expr: |
+          aurora:connections_used:sum
+          / on (cluster, instance) group_left()
+          max by (cluster, instance) (pg_settings_max_connections)
+
+      # --- Transactions / throughput ---
+      - record: aurora:transactions:rate5m
+        expr: |
+          sum by (cluster, instance) (
+            rate(pg_stat_database_xact_commit[5m]) + rate(pg_stat_database_xact_rollback[5m])
+          )
+
+      - record: aurora:rollback_ratio:ratio5m
+        expr: |
+          sum by (cluster, instance) (rate(pg_stat_database_xact_rollback[5m]))
+          / on (cluster, instance)
+          clamp_min(
+            sum by (cluster, instance) (
+              rate(pg_stat_database_xact_commit[5m]) + rate(pg_stat_database_xact_rollback[5m])
+            ),
+            1e-9
+          )
+
+      # --- Cache hit ratio (buffer cache) ---
+      - record: aurora:cache_hit_ratio:ratio5m
+        expr: |
+          sum by (cluster, instance) (rate(pg_stat_database_blks_hit[5m]))
+          / on (cluster, instance)
+          clamp_min(
+            sum by (cluster, instance) (
+              rate(pg_stat_database_blks_hit[5m]) + rate(pg_stat_database_blks_read[5m])
+            ),
+            1e-9
+          )
+
+      # --- Row-level DML throughput ---
+      - record: aurora:tuples_modified:rate5m
+        expr: |
+          sum by (cluster, instance) (
+            rate(pg_stat_user_tables_n_tup_ins[5m])
+            + rate(pg_stat_user_tables_n_tup_upd[5m])
+            + rate(pg_stat_user_tables_n_tup_del[5m])
+          )
+
+      # --- Locks ---
+      - record: aurora:locks_held:sum
+        expr: sum by (cluster, instance, mode) (pg_locks_count)
+
+      # --- Checkpoints / WAL (bgwriter subsystem retains buffers_alloc/clean/maxwritten in PG17+;
+      #     checkpoint counters moved to stat_checkpointer collector on PG17+, OPTIONAL, enabled
+      #     in systemd/postgres_exporter.service for this Aurora PostgreSQL 17+ stack) ---
+      - record: aurora:checkpoints:rate5m
+        expr: |
+          sum by (cluster, instance) (
+            rate(pg_stat_checkpointer_num_timed_total[5m])
+            + rate(pg_stat_checkpointer_num_requested_total[5m])
+          )
+
+      # --- Vacuum / transaction ID age (OPTIONAL: requires --collector.database_wraparound,
+      #     enabled by this repo's systemd unit; disabled upstream by default) ---
+      - record: aurora:xid_age_datfrozenxid:max
+        expr: max by (cluster, instance, datname) (pg_database_wraparound_age_datfrozenxid_seconds)
+
+      # --- Replication (populated on reader instances only) ---
+      - record: aurora:replica_lag_seconds:max
+        expr: max by (cluster, instance) (pg_replication_lag_seconds)
+
+      # --- Errors ---
+      - record: aurora:deadlocks:rate5m
+        expr: sum by (cluster, instance) (rate(pg_stat_database_deadlocks[5m]))
+
+      # --- Exporter health ---
+      - record: aurora:exporter_scrape_errors:sum
+        expr: sum by (cluster, instance, collector) (1 - pg_scrape_collector_success)
+
+      # ------------------------------------------------------------------
+      # YACE / CloudWatch (AWS/RDS namespace) recording rules.
+      # OPTIONAL in the sense that they depend on the yace scrape job being configured and
+      # reachable; the dashboard marks any panel using these as "AWS CloudWatch (YACE)".
+      # ------------------------------------------------------------------
+      - record: aurora:cw_cpu_utilization:avg
+        expr: avg by (cluster, dimension_DBInstanceIdentifier) (aws_rds_cpuutilization_average)
+
+      - record: aurora:cw_freeable_memory:min
+        expr: min by (cluster, dimension_DBInstanceIdentifier) (aws_rds_freeable_memory_average)
+
+      - record: aurora:cw_replica_lag_ms:max
+        expr: max by (cluster, dimension_DBInstanceIdentifier) (aws_rds_aurora_replica_lag_average)
+
+      - record: aurora:cw_volume_bytes_used:max
+        expr: max by (cluster, dimension_DBClusterIdentifier) (aws_rds_volume_bytes_used_average)

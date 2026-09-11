@@ -1,0 +1,42 @@
+# promtool unit test: AuroraPostgresInstanceDown (prometheus/rules/alerts.yml)
+#
+# Run with: promtool test rules prometheus/tests/*.yml
+# Each alert category gets its own file (rather than multiple `tests:` blocks in one file) to
+# avoid a promtool v3.14.0 rule-testing quirk where an alert_rule_test block that both asserts a
+# "pending" (empty) state and a later "firing" state can silently see no alerts if the SAME file
+# contains a following, unrelated `tests:` block -- reproduced independently of this repo's rule
+# logic. Splitting one scenario per file sidesteps it entirely.
+rule_files:
+  - ../rules/recording_rules.yml
+  - ../rules/alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'pg_up{cluster="test-cluster",instance="aurora-writer.observability.invalid:9187"}'
+        values: "1 1 1 0 0 0 0 0"
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: AuroraPostgresInstanceDown
+        exp_alerts: []
+      - eval_time: 4m
+        alertname: AuroraPostgresInstanceDown
+        exp_alerts: [] # pending since t=3m, "for: 2m" means it fires at t=5m
+      - eval_time: 5m
+        alertname: AuroraPostgresInstanceDown
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              service: aurora-postgresql
+              cluster: test-cluster
+              instance: aurora-writer.observability.invalid:9187
+            exp_annotations:
+              summary: "Aurora PostgreSQL instance aurora-writer.observability.invalid:9187 is unreachable"
+              runbook_url: "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresinstancedown"
+              description: >-
+                postgres_exporter has been unable to connect to (or successfully ping) the
+                PostgreSQL instance on aurora-writer.observability.invalid:9187 for 2 minutes.
+                pg_up == 0 means the exporter process is running but the database connection is
+                failing.

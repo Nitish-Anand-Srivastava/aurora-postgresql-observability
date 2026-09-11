@@ -1,0 +1,3856 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "description": "Prometheus datasource scraping postgres_exporter and yace. Provisioned automatically as 'Prometheus' by grafana/provisioning/datasources/prometheus.yml.",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "13.2.1"
+    },
+    {
+      "type": "datasource",
+      "id": "prometheus",
+      "name": "Prometheus",
+      "version": "1.0.0"
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "doc",
+      "includeVars": false,
+      "keepTime": false,
+      "tags": [],
+      "targetBlank": true,
+      "title": "Dashboard interpretation guide",
+      "tooltip": "docs/dashboard-guide.md",
+      "type": "link",
+      "url": "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/dashboard-guide.md"
+    },
+    {
+      "asDropdown": false,
+      "icon": "doc",
+      "includeVars": false,
+      "keepTime": false,
+      "tags": [],
+      "targetBlank": true,
+      "title": "Metrics reference",
+      "tooltip": "docs/metrics-reference.md",
+      "type": "link",
+      "url": "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/metrics-reference.md"
+    },
+    {
+      "asDropdown": false,
+      "icon": "doc",
+      "includeVars": false,
+      "keepTime": false,
+      "tags": [],
+      "targetBlank": true,
+      "title": "Troubleshooting / runbooks",
+      "tooltip": "docs/troubleshooting.md",
+      "type": "link",
+      "url": "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md"
+    }
+  ],
+  "liveNow": false,
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Availability",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Instance up (pg_up)",
+      "description": "1 = postgres_exporter connected successfully to the instance. Source: postgres_exporter base metric pg_up.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 0,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "description": "1 = postgres_exporter connected successfully to the instance. Source: postgres_exporter base metric pg_up.",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "min(pg_up{cluster=~\"$cluster\", instance=~\"$instance\"})",
+          "legendFormat": "up",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      },
+      "links": [
+        {
+          "title": "Runbook",
+          "url": "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresinstancedown"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "postgres_exporter scrape target up",
+      "description": "Prometheus's own 'up' metric for the postgres_exporter job -- distinct from pg_up (exporter reachable vs. DB reachable). Source: Prometheus scrape metadata.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 6,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "description": "Prometheus's own 'up' metric for the postgres_exporter job -- distinct from pg_up (exporter reachable vs. DB reachable). Source: Prometheus scrape metadata.",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "min(up{job=\"postgres_exporter\", instance=~\"$instance\"})",
+          "legendFormat": "up",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      },
+      "links": [
+        {
+          "title": "Runbook",
+          "url": "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#postgresexporterscrapefailed"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "YACE scrape target up (OPTIONAL: AWS CloudWatch)",
+      "description": "OPTIONAL panel: requires the yace scrape job to be configured and AWS credentials to be valid. 1 = Prometheus can scrape YACE. Does not indicate CloudWatch API call success by itself.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 12,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "description": "OPTIONAL panel: requires the yace scrape job to be configured and AWS credentials to be valid. 1 = Prometheus can scrape YACE. Does not indicate CloudWatch API call success by itself.",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "min(up{job=\"yace\"})",
+          "legendFormat": "up",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      },
+      "links": [
+        {
+          "title": "Runbook",
+          "url": "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#yaceexporterscrapefailed"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "gauge",
+      "title": "Exporter collector success ratio",
+      "description": "Share of postgres_exporter collectors succeeding on their last scrape. Source: pg_scrape_collector_success (built into postgres_exporter, always emitted).",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 18,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "description": "Share of postgres_exporter collectors succeeding on their last scrape. Source: pg_scrape_collector_success (built into postgres_exporter, always emitted).",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.8
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "avg(pg_scrape_collector_success{instance=~\"$instance\"})",
+          "legendFormat": "success ratio",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Instance availability over time",
+      "description": "pg_up per instance over the selected time range. Source: postgres_exporter pg_up.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "description": "pg_up per instance over the selected time range. Source: postgres_exporter pg_up.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "pg_up{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{instance}} ({{role}})",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "row",
+      "title": "Connections",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Connections used ratio",
+      "description": "aurora:connections_used_ratio recording rule: sum(pg_stat_activity_count) / pg_settings_max_connections. Alerts at 80% (warning) and 95% (critical) -- see prometheus/rules/alerts.yml.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 18
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "description": "aurora:connections_used_ratio recording rule: sum(pg_stat_activity_count) / pg_settings_max_connections. Alerts at 80% (warning) and 95% (critical) -- see prometheus/rules/alerts.yml.",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.8
+              },
+              {
+                "color": "red",
+                "value": 0.95
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aurora:connections_used_ratio{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "links": [
+        {
+          "title": "Runbook",
+          "url": "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgreshighconnections"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Connections by state",
+      "description": "pg_stat_activity_count broken down by backend state (active, idle, idle in transaction, ...). Source: postgres_exporter stat_activity collector (enabled by default).",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 18
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "description": "pg_stat_activity_count broken down by backend state (active, idle, idle in transaction, ...). Source: postgres_exporter stat_activity collector (enabled by default).",
+          "min": 0,
+          "custom": {
+            "stacking": {
+              "mode": "normal"
+            },
+            "fillOpacity": 30
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum by (state) (pg_stat_activity_count{cluster=~\"$cluster\", instance=~\"$instance\", datname=~\"$database\"})",
+          "legendFormat": "{{state}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Connections (AWS CloudWatch, OPTIONAL)",
+      "description": "OPTIONAL panel: AWS/RDS DatabaseConnections metric via YACE, independent measurement from the AWS side. Source: exporters/yace/config.yml.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 26
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "description": "OPTIONAL panel: AWS/RDS DatabaseConnections metric via YACE, independent measurement from the AWS side. Source: exporters/yace/config.yml.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_database_connections_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "stat",
+      "title": "max_connections setting",
+      "description": "Configured max_connections per instance. Source: postgres_exporter settings collector (pg_settings_max_connections, enabled by default).",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 26
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "description": "Configured max_connections per instance. Source: postgres_exporter settings collector (pg_settings_max_connections, enabled by default).",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "max by (instance) (pg_settings_max_connections{cluster=~\"$cluster\", instance=~\"$instance\"})",
+          "legendFormat": "{{instance}}",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 12,
+      "type": "row",
+      "title": "DB Load / Active Sessions",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 34
+      }
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Active sessions (proxy, NOT AWS DB Load/AAS)",
+      "description": "OPTIONAL/approximation: count of pg_stat_activity rows with state='active'. This is a locally-computed proxy, not the CloudWatch Database Insights DB Load (Average Active Sessions) metric -- see the text panel above and docs/architecture.md.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 43
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "description": "OPTIONAL/approximation: count of pg_stat_activity rows with state='active'. This is a locally-computed proxy, not the CloudWatch Database Insights DB Load (Average Active Sessions) metric -- see the text panel above and docs/architecture.md.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum by (instance) (pg_stat_activity_count{cluster=~\"$cluster\", instance=~\"$instance\", datname=~\"$database\", state=\"active\"})",
+          "legendFormat": "{{instance}} active sessions",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "text",
+      "title": "About this row",
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 35
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "**This is NOT the same as CloudWatch Database Insights 'DB Load' (Average Active Sessions).** AWS's Performance Insights feature reached end-of-life on July 31, 2026; existing users were migrated to CloudWatch Database Insights (Standard and Advanced modes). DB Load / AAS is only available via the Performance Insights compatibility API (`GetResourceMetrics` and related `pi:*` actions), which YACE does not and cannot scrape -- YACE only reads ordinary `AWS/RDS` CloudWatch namespace metrics. The panel below is a same-shape *proxy* built from `pg_stat_activity` (count of backends in the `active` state), useful for trend/shape comparison only. See `docs/architecture.md` for the full API boundary, current Database Insights terminology, and an optional, unimplemented collector design."
+      }
+    },
+    {
+      "id": 15,
+      "type": "row",
+      "title": "CPU & Memory (AWS CloudWatch, OPTIONAL)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 51
+      }
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "CPU utilization",
+      "description": "OPTIONAL: AWS/RDS CPUUtilization via YACE.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 52
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "description": "OPTIONAL: AWS/RDS CPUUtilization via YACE.",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_cpuutilization_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}} avg",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_cpuutilization_maximum{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}} max",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 17,
+      "type": "timeseries",
+      "title": "Freeable memory",
+      "description": "OPTIONAL: AWS/RDS FreeableMemory via YACE.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 52
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "description": "OPTIONAL: AWS/RDS FreeableMemory via YACE.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_freeable_memory_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "Swap usage",
+      "description": "OPTIONAL: AWS/RDS SwapUsage via YACE. Not emitted for all instance classes (see AWS docs).",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 60
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "description": "OPTIONAL: AWS/RDS SwapUsage via YACE. Not emitted for all instance classes (see AWS docs).",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_swap_usage_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 19,
+      "type": "timeseries",
+      "title": "CPU credit balance / usage",
+      "description": "OPTIONAL: only emits data points for burstable (db.t3/db.t4g) instance classes. Source: AWS/RDS CPUCreditBalance/CPUCreditUsage via YACE.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 60
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "description": "OPTIONAL: only emits data points for burstable (db.t3/db.t4g) instance classes. Source: AWS/RDS CPUCreditBalance/CPUCreditUsage via YACE.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_cpucredit_balance_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}} balance",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_cpucredit_usage_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}} usage",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 20,
+      "type": "timeseries",
+      "title": "Estimated shared memory (AWS CloudWatch, OPTIONAL)",
+      "description": "OPTIONAL: AWS/RDS AuroraEstimatedSharedMemoryBytes via YACE -- Aurora PostgreSQL-specific, reported on the primary/writer instance only.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 68
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "description": "OPTIONAL: AWS/RDS AuroraEstimatedSharedMemoryBytes via YACE -- Aurora PostgreSQL-specific, reported on the primary/writer instance only.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_aurora_estimated_shared_memory_bytes_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 21,
+      "type": "row",
+      "title": "Latency & Throughput",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 76
+      }
+    },
+    {
+      "id": 22,
+      "type": "timeseries",
+      "title": "Read / write latency (AWS CloudWatch, OPTIONAL)",
+      "description": "OPTIONAL: AWS/RDS ReadLatency/WriteLatency via YACE (seconds).",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 77
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "description": "OPTIONAL: AWS/RDS ReadLatency/WriteLatency via YACE (seconds).",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_read_latency_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}} read",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_write_latency_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}} write",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 23,
+      "type": "timeseries",
+      "title": "Read / write throughput (AWS CloudWatch, OPTIONAL)",
+      "description": "OPTIONAL: AWS/RDS ReadThroughput/WriteThroughput via YACE (bytes/sec).",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 77
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "description": "OPTIONAL: AWS/RDS ReadThroughput/WriteThroughput via YACE (bytes/sec).",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_read_throughput_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}} read",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_write_throughput_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}} write",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 24,
+      "type": "timeseries",
+      "title": "Commit latency / throughput (AWS CloudWatch, OPTIONAL)",
+      "description": "OPTIONAL: AWS/RDS CommitLatency (ms) / CommitThroughput via YACE.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 85
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "description": "OPTIONAL: AWS/RDS CommitLatency (ms) / CommitThroughput via YACE.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_commit_latency_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}} latency (ms)",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_commit_throughput_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}} throughput/s",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 25,
+      "type": "timeseries",
+      "title": "Row modification throughput ($rate_interval)",
+      "description": "Rate of inserted+updated+deleted rows across user tables. Source: postgres_exporter stat_user_tables collector (enabled by default): pg_stat_user_tables_n_tup_{ins,upd,del}.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 85
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "description": "Rate of inserted+updated+deleted rows across user tables. Source: postgres_exporter stat_user_tables collector (enabled by default): pg_stat_user_tables_n_tup_{ins,upd,del}.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum by (cluster, instance) (rate(pg_stat_user_tables_n_tup_ins{cluster=~\"$cluster\", instance=~\"$instance\"}[$rate_interval]) + rate(pg_stat_user_tables_n_tup_upd{cluster=~\"$cluster\", instance=~\"$instance\"}[$rate_interval]) + rate(pg_stat_user_tables_n_tup_del{cluster=~\"$cluster\", instance=~\"$instance\"}[$rate_interval]))",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 26,
+      "type": "row",
+      "title": "I/O",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 93
+      }
+    },
+    {
+      "id": 27,
+      "type": "timeseries",
+      "title": "Read / write IOPS (AWS CloudWatch, OPTIONAL)",
+      "description": "OPTIONAL: AWS/RDS ReadIOPS/WriteIOPS via YACE.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 94
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "description": "OPTIONAL: AWS/RDS ReadIOPS/WriteIOPS via YACE.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_read_iops_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}} read",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_write_iops_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}} write",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 28,
+      "type": "timeseries",
+      "title": "Disk queue depth (AWS CloudWatch, OPTIONAL)",
+      "description": "OPTIONAL: AWS/RDS DiskQueueDepth via YACE.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 94
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "description": "OPTIONAL: AWS/RDS DiskQueueDepth via YACE.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_disk_queue_depth_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 29,
+      "type": "timeseries",
+      "title": "Table heap block I/O ($rate_interval)",
+      "description": "Disk-vs-cache reads for user tables. Source: postgres_exporter statio_user_tables collector (enabled by default): pg_statio_user_tables_heap_blocks_{read,hit}.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 102
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "description": "Disk-vs-cache reads for user tables. Source: postgres_exporter statio_user_tables collector (enabled by default): pg_statio_user_tables_heap_blocks_{read,hit}.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum(rate(pg_statio_user_tables_heap_blocks_read{cluster=~\"$cluster\", instance=~\"$instance\", datname=~\"$database\"}[$rate_interval]))",
+          "legendFormat": "heap blocks read/s",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum(rate(pg_statio_user_tables_heap_blocks_hit{cluster=~\"$cluster\", instance=~\"$instance\", datname=~\"$database\"}[$rate_interval]))",
+          "legendFormat": "heap blocks hit/s",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 30,
+      "type": "row",
+      "title": "Cache",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 110
+      }
+    },
+    {
+      "id": 31,
+      "type": "timeseries",
+      "title": "Buffer cache hit ratio",
+      "description": "aurora:cache_hit_ratio:ratio5m recording rule from postgres_exporter pg_stat_database_blks_{hit,read} (stat_database collector, enabled by default). Healthy OLTP workloads are usually >99%.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 111
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "description": "aurora:cache_hit_ratio:ratio5m recording rule from postgres_exporter pg_stat_database_blks_{hit,read} (stat_database collector, enabled by default). Healthy OLTP workloads are usually >99%.",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.9
+              },
+              {
+                "color": "green",
+                "value": 0.99
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aurora:cache_hit_ratio:ratio5m{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 32,
+      "type": "timeseries",
+      "title": "Buffer cache hit ratio (AWS CloudWatch, OPTIONAL)",
+      "description": "OPTIONAL: AWS/RDS BufferCacheHitRatio via YACE -- an independent, AWS-computed measurement.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 111
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "description": "OPTIONAL: AWS/RDS BufferCacheHitRatio via YACE -- an independent, AWS-computed measurement.",
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_buffer_cache_hit_ratio_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 33,
+      "type": "timeseries",
+      "title": "Aurora Optimized Reads cache hit ratio (AWS CloudWatch, OPTIONAL)",
+      "description": "OPTIONAL: only present when the local NVMe Optimized Reads cache is available on the writer instance. Source: AWS/RDS AuroraOptimizedReadsCacheHitRatio via YACE.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 119
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "description": "OPTIONAL: only present when the local NVMe Optimized Reads cache is available on the writer instance. Source: AWS/RDS AuroraOptimizedReadsCacheHitRatio via YACE.",
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_aurora_optimized_reads_cache_hit_ratio_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 34,
+      "type": "row",
+      "title": "Locks & Waits",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 127
+      }
+    },
+    {
+      "id": 35,
+      "type": "timeseries",
+      "title": "Locks held by mode",
+      "description": "Source: postgres_exporter locks collector (enabled by default): pg_locks_count.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 128
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "description": "Source: postgres_exporter locks collector (enabled by default): pg_locks_count.",
+          "min": 0,
+          "custom": {
+            "stacking": {
+              "mode": "normal"
+            },
+            "fillOpacity": 30
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum by (mode) (pg_locks_count{cluster=~\"$cluster\", instance=~\"$instance\"})",
+          "legendFormat": "{{mode}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "links": [
+        {
+          "title": "Runbook",
+          "url": "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#locks-and-waits"
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "type": "timeseries",
+      "title": "Backends by wait event type",
+      "description": "Source: postgres_exporter stat_activity collector (enabled by default): pg_stat_activity_count grouped by wait_event_type (Lock, LWLock, IO, Client, etc; empty = not waiting).",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 128
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "description": "Source: postgres_exporter stat_activity collector (enabled by default): pg_stat_activity_count grouped by wait_event_type (Lock, LWLock, IO, Client, etc; empty = not waiting).",
+          "min": 0,
+          "custom": {
+            "stacking": {
+              "mode": "normal"
+            },
+            "fillOpacity": 30
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum by (wait_event_type) (pg_stat_activity_count{cluster=~\"$cluster\", instance=~\"$instance\", datname=~\"$database\", wait_event_type!=\"\"})",
+          "legendFormat": "{{wait_event_type}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 37,
+      "type": "timeseries",
+      "title": "Longest running transaction",
+      "description": "Source: postgres_exporter stat_activity collector (enabled by default): pg_stat_activity_max_tx_duration (seconds).",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 136
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "description": "Source: postgres_exporter stat_activity collector (enabled by default): pg_stat_activity_max_tx_duration (seconds).",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "max by (instance) (pg_stat_activity_max_tx_duration{cluster=~\"$cluster\", instance=~\"$instance\", datname=~\"$database\"})",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 38,
+      "type": "timeseries",
+      "title": "Long-running transactions (OPTIONAL, fleet-wide count/age)",
+      "description": "OPTIONAL: requires --collector.long_running_transactions (disabled by default upstream and in this repo -- not enabled in systemd/postgres_exporter.service). Source: pg_long_running_transactions (count) and pg_long_running_transactions_oldest_timestamp_seconds (age of the oldest one). Overlaps with the always-on 'Longest running transaction' panel to the left, which is per label set rather than a single fleet-wide count/max-age pair; prefer that built-in unless you specifically need this shape.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 136
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "description": "OPTIONAL: requires --collector.long_running_transactions (disabled by default upstream and in this repo -- not enabled in systemd/postgres_exporter.service). Source: pg_long_running_transactions (count) and pg_long_running_transactions_oldest_timestamp_seconds (age of the oldest one). Overlaps with the always-on 'Longest running transaction' panel to the left, which is per label set rather than a single fleet-wide count/max-age pair; prefer that built-in unless you specifically need this shape.",
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "pg_long_running_transactions{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{instance}} count",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "pg_long_running_transactions_oldest_timestamp_seconds{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{instance}} oldest age (s)",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 39,
+      "type": "row",
+      "title": "Transactions & Errors",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 144
+      }
+    },
+    {
+      "id": 40,
+      "type": "timeseries",
+      "title": "Transaction rate ($rate_interval)",
+      "description": "Commit plus rollback rate over the selected $rate_interval. Source: postgres_exporter stat_database collector (enabled by default).",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 145
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "description": "Commit plus rollback rate over the selected $rate_interval. Source: postgres_exporter stat_database collector (enabled by default).",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum by (cluster, instance) (rate(pg_stat_database_xact_commit{cluster=~\"$cluster\", instance=~\"$instance\", datname=~\"$database\"}[$rate_interval]) + rate(pg_stat_database_xact_rollback{cluster=~\"$cluster\", instance=~\"$instance\", datname=~\"$database\"}[$rate_interval]))",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 41,
+      "type": "timeseries",
+      "title": "Rollback ratio",
+      "description": "aurora:rollback_ratio:ratio5m recording rule. A sustained high rollback ratio often indicates application-level retries or constraint violations.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 145
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "description": "aurora:rollback_ratio:ratio5m recording rule. A sustained high rollback ratio often indicates application-level retries or constraint violations.",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 0.25
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aurora:rollback_ratio:ratio5m{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 42,
+      "type": "timeseries",
+      "title": "Deadlocks ($rate_interval)",
+      "description": "Deadlock rate over the selected $rate_interval from pg_stat_database_deadlocks. Any sustained non-zero rate pages AuroraPostgresDeadlocksElevated -- see prometheus/rules/alerts.yml.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 153
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "description": "Deadlock rate over the selected $rate_interval from pg_stat_database_deadlocks. Any sustained non-zero rate pages AuroraPostgresDeadlocksElevated -- see prometheus/rules/alerts.yml.",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.001
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum by (cluster, instance) (rate(pg_stat_database_deadlocks{cluster=~\"$cluster\", instance=~\"$instance\", datname=~\"$database\"}[$rate_interval]))",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "links": [
+        {
+          "title": "Runbook",
+          "url": "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresdeadlockselevated"
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "type": "timeseries",
+      "title": "Recovery conflicts ($rate_interval, readers only)",
+      "description": "Source: postgres_exporter stat_database collector (enabled by default): pg_stat_database_conflicts. Only non-zero on reader instances during standby query cancellation.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 153
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "description": "Source: postgres_exporter stat_database collector (enabled by default): pg_stat_database_conflicts. Only non-zero on reader instances during standby query cancellation.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum by (instance) (rate(pg_stat_database_conflicts{cluster=~\"$cluster\", instance=~\"$instance\", datname=~\"$database\"}[$rate_interval]))",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 44,
+      "type": "row",
+      "title": "Query Performance (OPTIONAL: requires pg_stat_statements)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 161
+      }
+    },
+    {
+      "id": 46,
+      "type": "timeseries",
+      "title": "Top statements by call rate ($rate_interval)",
+      "description": "OPTIONAL: pg_stat_statements_calls_total (requires --collector.stat_statements).",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 170
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "description": "OPTIONAL: pg_stat_statements_calls_total (requires --collector.stat_statements).",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "topk(10, sum by (queryid, datname) (rate(pg_stat_statements_calls_total{cluster=~\"$cluster\", instance=~\"$instance\", datname=~\"$database\"}[$rate_interval])))",
+          "legendFormat": "{{datname}} / {{queryid}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 47,
+      "type": "timeseries",
+      "title": "Top statements by total time ($rate_interval)",
+      "description": "OPTIONAL: pg_stat_statements_seconds_total (requires --collector.stat_statements).",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 170
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "description": "OPTIONAL: pg_stat_statements_seconds_total (requires --collector.stat_statements).",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "topk(10, sum by (queryid, datname) (rate(pg_stat_statements_seconds_total{cluster=~\"$cluster\", instance=~\"$instance\", datname=~\"$database\"}[$rate_interval])))",
+          "legendFormat": "{{datname}} / {{queryid}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 45,
+      "type": "text",
+      "title": "About this row",
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 162
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "**OPTIONAL.** Every panel in this row requires the `stat_statements` postgres_exporter collector, which is DISABLED by default upstream (and in this repo's systemd unit) because it is high-cardinality on busy servers, and requires the `pg_stat_statements` extension to be created and added to `shared_preload_libraries` first -- see `sql/create_monitoring_role.sql` and `docs/metrics-reference.md`. Enable with `--collector.stat_statements` once you have assessed the cardinality impact."
+      }
+    },
+    {
+      "id": 48,
+      "type": "row",
+      "title": "Vacuum & Transaction ID (XID) Wraparound",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 178
+      }
+    },
+    {
+      "id": 49,
+      "type": "timeseries",
+      "title": "Oldest unfrozen transaction ID age",
+      "description": "OPTIONAL (requires --collector.database_wraparound, enabled in this repo's systemd unit but disabled upstream by default): pg_database_wraparound_age_datfrozenxid_seconds. NOTE: despite the '_seconds' suffix inherited from the exporter's metric-name convention, the value is a transaction-ID AGE (a count), not a time duration -- see docs/metrics-reference.md. PostgreSQL forces read-only mode at age 2,146,483,648.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 179
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "description": "OPTIONAL (requires --collector.database_wraparound, enabled in this repo's systemd unit but disabled upstream by default): pg_database_wraparound_age_datfrozenxid_seconds. NOTE: despite the '_seconds' suffix inherited from the exporter's metric-name convention, the value is a transaction-ID AGE (a count), not a time duration -- see docs/metrics-reference.md. PostgreSQL forces read-only mode at age 2,146,483,648.",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1000000000
+              },
+              {
+                "color": "red",
+                "value": 1700000000
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aurora:xid_age_datfrozenxid:max{cluster=~\"$cluster\", instance=~\"$instance\", datname=~\"$database\"}",
+          "legendFormat": "{{instance}} / {{datname}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "links": [
+        {
+          "title": "Runbook",
+          "url": "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresxidwraparoundcritical"
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "type": "timeseries",
+      "title": "Dead vs. live tuples",
+      "description": "Source: postgres_exporter stat_user_tables collector (enabled by default): pg_stat_user_tables_n_{live,dead}_tup. A rising dead/live ratio suggests autovacuum is falling behind.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 187
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "description": "Source: postgres_exporter stat_user_tables collector (enabled by default): pg_stat_user_tables_n_{live,dead}_tup. A rising dead/live ratio suggests autovacuum is falling behind.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum by (instance) (pg_stat_user_tables_n_dead_tup{cluster=~\"$cluster\", instance=~\"$instance\", datname=~\"$database\"})",
+          "legendFormat": "{{instance}} dead",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum by (instance) (pg_stat_user_tables_n_live_tup{cluster=~\"$cluster\", instance=~\"$instance\", datname=~\"$database\"})",
+          "legendFormat": "{{instance}} live",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 51,
+      "type": "timeseries",
+      "title": "Active vacuum progress (OPTIONAL, point-in-time)",
+      "description": "Source: postgres_exporter stat_progress_vacuum collector (enabled by default): pg_stat_progress_vacuum_heap_blks_scanned / heap_blks (fraction complete). Only has data points while a vacuum is actively running.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 187
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "description": "Source: postgres_exporter stat_progress_vacuum collector (enabled by default): pg_stat_progress_vacuum_heap_blks_scanned / heap_blks (fraction complete). Only has data points while a vacuum is actively running.",
+          "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "pg_stat_progress_vacuum_heap_blks_scanned{cluster=~\"$cluster\", instance=~\"$instance\"} / pg_stat_progress_vacuum_heap_blks{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{instance}} / {{relname}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 52,
+      "type": "timeseries",
+      "title": "Maximum used transaction IDs (AWS CloudWatch, OPTIONAL)",
+      "description": "OPTIONAL: AWS/RDS MaximumUsedTransactionIDs via YACE -- AWS's own measurement of the same underlying risk, useful for cross-checking the postgres_exporter-derived panel above.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 195
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "description": "OPTIONAL: AWS/RDS MaximumUsedTransactionIDs via YACE -- AWS's own measurement of the same underlying risk, useful for cross-checking the postgres_exporter-derived panel above.",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1000000000
+              },
+              {
+                "color": "red",
+                "value": 1700000000
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_maximum_used_transaction_ids_maximum{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 53,
+      "type": "row",
+      "title": "WAL & Checkpoints",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 203
+      }
+    },
+    {
+      "id": 54,
+      "type": "timeseries",
+      "title": "WAL size",
+      "description": "Source: postgres_exporter wal collector (enabled by default): pg_wal_size_bytes.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 204
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "description": "Source: postgres_exporter wal collector (enabled by default): pg_wal_size_bytes.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "pg_wal_size_bytes{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{instance}} size",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 55,
+      "type": "timeseries",
+      "title": "WAL segment count",
+      "description": "Source: postgres_exporter wal collector (enabled by default): pg_wal_segments.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 204
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "description": "Source: postgres_exporter wal collector (enabled by default): pg_wal_segments.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "pg_wal_segments{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{instance}} segments",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 56,
+      "type": "timeseries",
+      "title": "Checkpoints ($rate_interval)",
+      "description": "OPTIONAL (PostgreSQL 17+ only, requires --collector.stat_checkpointer, enabled in this repo's systemd unit): checkpoint rate over the selected $rate_interval from pg_stat_checkpointer_num_{timed,requested}_total. Frequent requested checkpoints can indicate checkpoint_completion_target/max_wal_size tuning issues.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 212
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "description": "OPTIONAL (PostgreSQL 17+ only, requires --collector.stat_checkpointer, enabled in this repo's systemd unit): checkpoint rate over the selected $rate_interval from pg_stat_checkpointer_num_{timed,requested}_total. Frequent requested checkpoints can indicate checkpoint_completion_target/max_wal_size tuning issues.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum by (cluster, instance) (rate(pg_stat_checkpointer_num_timed_total{cluster=~\"$cluster\", instance=~\"$instance\"}[$rate_interval]) + rate(pg_stat_checkpointer_num_requested_total{cluster=~\"$cluster\", instance=~\"$instance\"}[$rate_interval]))",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 57,
+      "type": "timeseries",
+      "title": "Checkpoint write/sync time ($rate_interval)",
+      "description": "OPTIONAL (PostgreSQL 17+, requires --collector.stat_checkpointer): pg_stat_checkpointer_write_time_total / sync_time_total (milliseconds).",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 212
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "description": "OPTIONAL (PostgreSQL 17+, requires --collector.stat_checkpointer): pg_stat_checkpointer_write_time_total / sync_time_total (milliseconds).",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum by (instance) (rate(pg_stat_checkpointer_write_time_total{cluster=~\"$cluster\", instance=~\"$instance\"}[$rate_interval]))",
+          "legendFormat": "{{instance}} write",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum by (instance) (rate(pg_stat_checkpointer_sync_time_total{cluster=~\"$cluster\", instance=~\"$instance\"}[$rate_interval]))",
+          "legendFormat": "{{instance}} sync",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 58,
+      "type": "timeseries",
+      "title": "WAL archiver ($rate_interval, OPTIONAL/context-dependent)",
+      "description": "Source: postgres_exporter stat_archiver collector (enabled by default): pg_stat_archiver_{archived,failed}_count. Only meaningful if WAL archiving is configured/applicable for your topology.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 220
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "description": "Source: postgres_exporter stat_archiver collector (enabled by default): pg_stat_archiver_{archived,failed}_count. Only meaningful if WAL archiving is configured/applicable for your topology.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum by (instance) (rate(pg_stat_archiver_archived_count{cluster=~\"$cluster\", instance=~\"$instance\"}[$rate_interval]))",
+          "legendFormat": "{{instance}} archived",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum by (instance) (rate(pg_stat_archiver_failed_count{cluster=~\"$cluster\", instance=~\"$instance\"}[$rate_interval]))",
+          "legendFormat": "{{instance}} failed",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 59,
+      "type": "row",
+      "title": "Storage",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 228
+      }
+    },
+    {
+      "id": 60,
+      "type": "timeseries",
+      "title": "Cluster volume bytes used (AWS CloudWatch, OPTIONAL, cluster-level)",
+      "description": "OPTIONAL: AWS/RDS VolumeBytesUsed via YACE -- the shared Aurora storage volume, reported once per cluster (dimension_DBClusterIdentifier), not per instance.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 229
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "description": "OPTIONAL: AWS/RDS VolumeBytesUsed via YACE -- the shared Aurora storage volume, reported once per cluster (dimension_DBClusterIdentifier), not per instance.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_volume_bytes_used_average{cluster=~\"$cluster\"}",
+          "legendFormat": "{{dimension_DBClusterIdentifier}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 61,
+      "type": "timeseries",
+      "title": "Cluster volume billed IOPS (AWS CloudWatch, OPTIONAL, cluster-level)",
+      "description": "OPTIONAL: AWS/RDS VolumeReadIOPs/VolumeWriteIOPs via YACE (5-minute billed I/O counts at the cluster level).",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 229
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "description": "OPTIONAL: AWS/RDS VolumeReadIOPs/VolumeWriteIOPs via YACE (5-minute billed I/O counts at the cluster level).",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_volume_read_iops_sum{cluster=~\"$cluster\"}",
+          "legendFormat": "{{dimension_DBClusterIdentifier}} read",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_volume_write_iops_sum{cluster=~\"$cluster\"}",
+          "legendFormat": "{{dimension_DBClusterIdentifier}} write",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 62,
+      "type": "timeseries",
+      "title": "Instance-local storage free (AWS CloudWatch, OPTIONAL)",
+      "description": "OPTIONAL: AWS/RDS FreeLocalStorage (ephemeral instance storage, distinct from the shared cluster volume above) via YACE.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 237
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "description": "OPTIONAL: AWS/RDS FreeLocalStorage (ephemeral instance storage, distinct from the shared cluster volume above) via YACE.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_free_local_storage_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 63,
+      "type": "timeseries",
+      "title": "Backup storage used (AWS CloudWatch, OPTIONAL, cluster-level)",
+      "description": "OPTIONAL: AWS/RDS BackupRetentionPeriodStorageUsed / TotalBackupStorageBilled via YACE.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 237
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "description": "OPTIONAL: AWS/RDS BackupRetentionPeriodStorageUsed / TotalBackupStorageBilled via YACE.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_backup_retention_period_storage_used_average{cluster=~\"$cluster\"}",
+          "legendFormat": "{{dimension_DBClusterIdentifier}} retention window",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_total_backup_storage_billed_average{cluster=~\"$cluster\"}",
+          "legendFormat": "{{dimension_DBClusterIdentifier}} total billed",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 64,
+      "type": "timeseries",
+      "title": "Snapshot storage used (AWS CloudWatch, OPTIONAL)",
+      "description": "OPTIONAL: AWS/RDS SnapshotStorageUsed via YACE, reported for the shared Aurora cluster volume.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 245
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "description": "OPTIONAL: AWS/RDS SnapshotStorageUsed via YACE, reported for the shared Aurora cluster volume.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_snapshot_storage_used_average{cluster=~\"$cluster\"}",
+          "legendFormat": "{{dimension_DBClusterIdentifier}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 65,
+      "type": "timeseries",
+      "title": "Transaction log disk usage (AWS CloudWatch, OPTIONAL)",
+      "description": "OPTIONAL: AWS/RDS TransactionLogsDiskUsage via YACE, showing bytes consumed by Aurora PostgreSQL transaction logs.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 245
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "description": "OPTIONAL: AWS/RDS TransactionLogsDiskUsage via YACE, showing bytes consumed by Aurora PostgreSQL transaction logs.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_transaction_logs_disk_usage_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 66,
+      "type": "row",
+      "title": "Replication / Readers",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 253
+      }
+    },
+    {
+      "id": 67,
+      "type": "timeseries",
+      "title": "Replica lag (PostgreSQL-reported)",
+      "description": "aurora:replica_lag_seconds:max recording rule from pg_replication_lag_seconds. Source: postgres_exporter replication collector (enabled by default), only non-zero on reader instances.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 254
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "description": "aurora:replica_lag_seconds:max recording rule from pg_replication_lag_seconds. Source: postgres_exporter replication collector (enabled by default), only non-zero on reader instances.",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 30
+              },
+              {
+                "color": "red",
+                "value": 120
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aurora:replica_lag_seconds:max{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "links": [
+        {
+          "title": "Runbook",
+          "url": "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresreplicalagcritical"
+        }
+      ]
+    },
+    {
+      "id": 68,
+      "type": "timeseries",
+      "title": "Replica lag (AWS CloudWatch, OPTIONAL)",
+      "description": "OPTIONAL: AWS/RDS AuroraReplicaLag (per-reader) via YACE -- an independent, AWS-side measurement in milliseconds for cross-checking the PostgreSQL-reported panel.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 254
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "description": "OPTIONAL: AWS/RDS AuroraReplicaLag (per-reader) via YACE -- an independent, AWS-side measurement in milliseconds for cross-checking the PostgreSQL-reported panel.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_aurora_replica_lag_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 69,
+      "type": "timeseries",
+      "title": "Cluster-wide max/min replica lag (AWS CloudWatch, OPTIONAL)",
+      "description": "OPTIONAL: AWS/RDS AuroraReplicaLagMaximum/AuroraReplicaLagMinimum via YACE. These are DISTINCT CloudWatch metrics (not statistics of AuroraReplicaLag) reported on the primary/writer instance: the max/min lag across all readers in the cluster.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 262
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "description": "OPTIONAL: AWS/RDS AuroraReplicaLagMaximum/AuroraReplicaLagMinimum via YACE. These are DISTINCT CloudWatch metrics (not statistics of AuroraReplicaLag) reported on the primary/writer instance: the max/min lag across all readers in the cluster.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_aurora_replica_lag_maximum_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}} max",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_aurora_replica_lag_minimum_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}} min",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 70,
+      "type": "timeseries",
+      "title": "Replication slots: WAL retained",
+      "description": "Source: postgres_exporter replication_slots collector (enabled by default): pg_replication_slots_pg_wal_lsn_diff (bytes of WAL a slot is holding back from being recycled). Note: postgres_exporter v0.20.1 uses the plural 'replication_slots' collector/metric family; older releases used the singular 'replication_slot'.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 262
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "description": "Source: postgres_exporter replication_slots collector (enabled by default): pg_replication_slots_pg_wal_lsn_diff (bytes of WAL a slot is holding back from being recycled). Note: postgres_exporter v0.20.1 uses the plural 'replication_slots' collector/metric family; older releases used the singular 'replication_slot'.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "pg_replication_slots_pg_wal_lsn_diff{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{instance}} / {{slot_name}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 71,
+      "type": "timeseries",
+      "title": "Oldest replication slot lag (AWS CloudWatch, OPTIONAL)",
+      "description": "OPTIONAL: AWS/RDS OldestReplicationSlotLag via YACE, showing the oldest Aurora PostgreSQL replication-slot lag in bytes.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 270
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "description": "OPTIONAL: AWS/RDS OldestReplicationSlotLag via YACE, showing the oldest Aurora PostgreSQL replication-slot lag in bytes.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "aws_rds_oldest_replication_slot_lag_maximum{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{dimension_DBInstanceIdentifier}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 72,
+      "type": "timeseries",
+      "title": "Per-standby WAL lag (pg_stat_replication)",
+      "description": "Source: postgres_exporter stat_replication collector (enabled by default): pg_stat_replication_pg_wal_lsn_diff (bytes), labeled by application_name/client_addr/state/slot_name for each connected standby. Distinct from the 'Replication slots' panel: this is per connected standby, that is per replication slot -- a slot can exist without an active connection, and vice versa.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 270
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "description": "Source: postgres_exporter stat_replication collector (enabled by default): pg_stat_replication_pg_wal_lsn_diff (bytes), labeled by application_name/client_addr/state/slot_name for each connected standby. Distinct from the 'Replication slots' panel: this is per connected standby, that is per replication slot -- a slot can exist without an active connection, and vice versa.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "pg_stat_replication_pg_wal_lsn_diff{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{instance}} / {{application_name}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 73,
+      "type": "stat",
+      "title": "Is replica (writer vs. reader)",
+      "description": "Source: postgres_exporter replication collector (enabled by default): pg_replication_is_replica (1 = reader, 0 = writer).",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 278
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "description": "Source: postgres_exporter replication collector (enabled by default): pg_replication_is_replica (1 = reader, 0 = writer).",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "pg_replication_is_replica{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{instance}}",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 74,
+      "type": "row",
+      "title": "Exporter Health",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 286
+      }
+    },
+    {
+      "id": 75,
+      "type": "timeseries",
+      "title": "postgres_exporter collector success by collector",
+      "description": "Source: pg_scrape_collector_success (always emitted by postgres_exporter). 0 for any collector pages PostgresExporterCollectorFailing after 15m -- see prometheus/rules/alerts.yml.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 287
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "description": "Source: pg_scrape_collector_success (always emitted by postgres_exporter). 0 for any collector pages PostgresExporterCollectorFailing after 15m -- see prometheus/rules/alerts.yml.",
+          "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "pg_scrape_collector_success{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{instance}} / {{collector}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "links": [
+        {
+          "title": "Runbook",
+          "url": "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#postgresexportercollectorfailing"
+        }
+      ]
+    },
+    {
+      "id": 76,
+      "type": "timeseries",
+      "title": "postgres_exporter collector scrape duration",
+      "description": "Source: pg_scrape_collector_duration_seconds (always emitted by postgres_exporter).",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 287
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "description": "Source: pg_scrape_collector_duration_seconds (always emitted by postgres_exporter).",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "pg_scrape_collector_duration_seconds{cluster=~\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{instance}} / {{collector}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 77,
+      "type": "timeseries",
+      "title": "YACE CloudWatch API calls ($rate_interval, OPTIONAL)",
+      "description": "OPTIONAL: YACE's own internal metric yace_cloudwatch_requests_total, useful for cost/throttling awareness of the CloudWatch GetMetricData/ListMetrics calls YACE makes on your behalf.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 295
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "description": "OPTIONAL: YACE's own internal metric yace_cloudwatch_requests_total, useful for cost/throttling awareness of the CloudWatch GetMetricData/ListMetrics calls YACE makes on your behalf.",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum by (api_name) (rate(yace_cloudwatch_requests_total[$rate_interval]))",
+          "legendFormat": "{{api_name}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "tags": [
+    "aurora",
+    "postgresql",
+    "rds",
+    "aws",
+    "cloudwatch"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "hide": 0,
+        "label": "Data source",
+        "name": "DS_PROMETHEUS",
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "",
+        "type": "datasource"
+      },
+      {
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "datasource",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "definition": "label_values(pg_up, cluster)",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "label": "Cluster",
+        "name": "cluster",
+        "options": [],
+        "query": {
+          "query": "label_values(pg_up, cluster)",
+          "refId": "cluster"
+        },
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "datasource",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "definition": "label_values(pg_up{cluster=~\"$cluster\"}, instance)",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "label": "Instance",
+        "name": "instance",
+        "options": [],
+        "query": {
+          "query": "label_values(pg_up{cluster=~\"$cluster\"}, instance)",
+          "refId": "instance"
+        },
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "datasource",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "definition": "label_values(pg_stat_database_xact_commit{instance=~\"$instance\"}, datname)",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "label": "Database",
+        "name": "database",
+        "options": [],
+        "query": {
+          "query": "label_values(pg_stat_database_xact_commit{instance=~\"$instance\"}, datname)",
+          "refId": "database"
+        },
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "auto": false,
+        "auto_count": 30,
+        "auto_min": "1m",
+        "current": {
+          "text": "5m",
+          "value": "5m"
+        },
+        "hide": 0,
+        "label": "Rate interval",
+        "name": "rate_interval",
+        "options": [
+          {
+            "text": "1m",
+            "value": "1m",
+            "selected": false
+          },
+          {
+            "text": "5m",
+            "value": "5m",
+            "selected": true
+          },
+          {
+            "text": "10m",
+            "value": "10m",
+            "selected": false
+          },
+          {
+            "text": "30m",
+            "value": "30m",
+            "selected": false
+          },
+          {
+            "text": "1h",
+            "value": "1h",
+            "selected": false
+          }
+        ],
+        "query": "1m,5m,10m,30m,1h",
+        "queryValue": "",
+        "refresh": 2,
+        "skipUrlSync": false,
+        "type": "interval"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Aurora PostgreSQL Observability",
+  "description": "Provisionable overview dashboard for Aurora PostgreSQL: postgres_exporter engine metrics plus optional AWS/RDS CloudWatch metrics via YACE. Panels marked OPTIONAL depend on a non-default collector flag, the pg_stat_statements extension, or the yace scrape job being configured. See docs/dashboard-guide.md.",
+  "uid": "aurora-postgresql-observability",
+  "version": 1,
+  "weekStart": ""
+}

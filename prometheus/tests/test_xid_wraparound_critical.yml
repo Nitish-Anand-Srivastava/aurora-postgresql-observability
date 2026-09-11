@@ -1,0 +1,37 @@
+# promtool unit test: AuroraPostgresXIDWraparoundCritical (prometheus/rules/alerts.yml).
+# Kept in its own file (separate from the Warning variant) -- see test_replica_lag_high.yml.
+rule_files:
+  - ../rules/recording_rules.yml
+  - ../rules/alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'pg_database_wraparound_age_datfrozenxid_seconds{cluster="test-cluster",instance="aurora-writer.observability.invalid:9187",datname="app_db"}'
+        values: "500000000x2 1800000000x40"
+    alert_rule_test:
+      # "500000000x2" is 3 samples (t=0,1,2), then "1800000000x40" is 41 samples (t=3..43). Age
+      # crosses the 1.7-billion threshold at t=3m; "for: 10m" fires at t=13m.
+      - eval_time: 12m
+        alertname: AuroraPostgresXIDWraparoundCritical
+        exp_alerts: []
+      - eval_time: 13m
+        alertname: AuroraPostgresXIDWraparoundCritical
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              service: aurora-postgresql
+              cluster: test-cluster
+              instance: aurora-writer.observability.invalid:9187
+              datname: app_db
+            exp_annotations:
+              summary: "Database app_db on aurora-writer.observability.invalid:9187 is approaching transaction ID wraparound"
+              runbook_url: "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresxidwraparoundcritical"
+              description: >-
+                The oldest unfrozen transaction ID age for app_db is 1.8G, approaching the
+                2,146,483,648 hard limit at which PostgreSQL/Aurora forces the database into
+                read-only mode to prevent data loss. Treat as an emergency: run a manual `VACUUM
+                (FREEZE, VERBOSE)` and identify what is blocking autovacuum (long transactions,
+                orphaned replication slots, prepared transactions).

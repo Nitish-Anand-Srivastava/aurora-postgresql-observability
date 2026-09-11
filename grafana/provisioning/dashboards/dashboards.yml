@@ -1,0 +1,20 @@
+# Grafana dashboard provisioning (file-based provisioning API).
+# https://grafana.com/docs/grafana/latest/administration/provisioning/#dashboards
+#
+# Loads every dashboard JSON file in /var/lib/grafana/dashboards (mounted from ../dashboards in
+# docker-compose.yml, or copied there in a systemd-based deployment). Dashboards keep their
+# `${DS_PROMETHEUS}` templating variable at provisioning time via the `inputs`/`__inputs` prompt
+# mechanism handled automatically by Grafana's dashboard provider for exported dashboard JSON.
+apiVersion: 1
+
+providers:
+  - name: aurora-postgresql-observability
+    orgId: 1
+    folder: "Aurora PostgreSQL"
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

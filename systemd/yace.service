@@ -1,0 +1,50 @@
+# systemd unit for prometheus-community/yet-another-cloudwatch-exporter (YACE) v0.67.0
+# https://github.com/prometheus-community/yet-another-cloudwatch-exporter/releases/tag/v0.67.0
+#
+# Install:
+#   sudo useradd --system --no-create-home --shell /usr/sbin/nologin yace
+#   sudo install -d -o yace -g yace -m 0750 /etc/yace
+#   sudo install -o yace -g yace -m 0640 yace.env.template /etc/yace/yace.env   # edit values
+#   sudo install -o yace -g yace -m 0640 ../../exporters/yace/config.yml /etc/yace/config.yml
+#   # download+verify the pinned binary/tarball from the authoritative release page above, then:
+#   sudo install -o root -g root -m 0755 yace /usr/local/bin/yace
+#   sudo cp yace.service /etc/systemd/system/yace.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now yace.service
+
+[Unit]
+Description=YACE (yet-another-cloudwatch-exporter) - AWS/RDS CloudWatch metrics for Aurora PostgreSQL
+Documentation=https://github.com/prometheus-community/yet-another-cloudwatch-exporter
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=yace
+Group=yace
+EnvironmentFile=/etc/yace/yace.env
+ExecStart=/usr/local/bin/yace \
+  -config.file=/etc/yace/config.yml \
+  -listen-address=0.0.0.0:5000 \
+  -scraping-interval=300 \
+  -log.format=json \
+  -log.level=info
+
+# The exporter listens on all interfaces so a separate Prometheus host can scrape it. Restrict
+# TCP/5000 to Prometheus with host/VPC firewall rules; see docs/security.md.
+
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+MemoryDenyWriteExecute=true
+
+[Install]
+WantedBy=multi-user.target

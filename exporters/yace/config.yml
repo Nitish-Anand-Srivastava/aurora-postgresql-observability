@@ -1,0 +1,185 @@
+# YACE (yet-another-cloudwatch-exporter) configuration for Aurora PostgreSQL.
+#
+# Upstream project: https://github.com/prometheus-community/yet-another-cloudwatch-exporter
+# (moved into the prometheus-community org in November 2024:
+#  https://prometheus.io/blog/2024/11/19/yace-joining-prometheus-community/)
+# Config schema reference: https://github.com/prometheus-community/yet-another-cloudwatch-exporter/blob/master/docs/configuration.md
+#
+# IMPORTANT — CloudWatch boundary this file implements:
+#   YACE only calls the standard CloudWatch `GetMetricData`/`ListMetrics` APIs against the
+#   `AWS/RDS` namespace ("ordinary CloudWatch metrics"). It does NOT call, and cannot call,
+#   the Performance Insights compatibility API (`GetResourceMetrics` and related `pi:*`
+#   actions) that underlies the CloudWatch Database Insights console feature (Standard/
+#   Advanced modes; AWS migrated Performance Insights users to Database Insights ahead of
+#   Performance Insights's July 31, 2026 end-of-life) — that is a separate AWS API with
+#   separate IAM actions, documented (with an optional, unimplemented collector design) in
+#   docs/architecture.md and docs/metrics-reference.md. Do not add Database
+#   Insights/Performance-Insights-shaped metric names here.
+#
+# Credentials: resolved via the AWS SDK default credential chain (environment variables,
+# shared config/credentials file, EC2/ECS/EKS instance role, or AssumeRole) — never static
+# keys committed to this repository. See iam/README.md.
+apiVersion: v1alpha1
+
+discovery:
+  # Tags copied onto every aws_rds_* metric as tag_<Key> labels, so panels/alerts can filter or
+  # group by application/environment without hardcoding resource identifiers.
+  exportedTagsOnMetrics:
+    AWS/RDS:
+      - Environment
+      - Application
+      # Apply this tag to the cluster and every DB instance, using the DBClusterIdentifier as
+      # its value. prometheus/prometheus.yml normalizes it into the shared `cluster` label.
+      - AuroraCluster
+
+  jobs:
+    # ------------------------------------------------------------------
+    # Job 1: Instance-level Aurora PostgreSQL metrics (writer + readers).
+    # Discovered by tag, so no instance identifiers are hardcoded here.
+    # ------------------------------------------------------------------
+    - type: AWS/RDS
+      regions:
+        - us-east-1 # placeholder region; set to your cluster's actual region(s)
+      # Only match resources tagged for this stack. Adjust the key/value regex to your tagging
+      # scheme; this is required so YACE does not scrape unrelated RDS instances in the account.
+      searchTags:
+        - key: aurora-observability
+          value: "true"
+      # Restrict this job to metrics carrying exactly the DBInstanceIdentifier dimension so it
+      # does not double-count cluster-level series (handled by the second job below).
+      dimensionNameRequirements:
+        - DBInstanceIdentifier
+      period: 60
+      length: 300
+      statistics:
+        - Average
+      metrics:
+        # --- Availability / connections ---
+        - name: DatabaseConnections
+          statistics: [Average, Maximum]
+        - name: EngineUptime
+          statistics: [Average]
+
+        # --- CPU / memory ---
+        - name: CPUUtilization
+          statistics: [Average, Maximum]
+        - name: FreeableMemory
+          statistics: [Average]
+        - name: SwapUsage
+          statistics: [Average]
+        # CPUCreditBalance/CPUCreditUsage only emit data points for burstable (db.t*) instance
+        # classes. Other classes correctly produce no series rather than a synthetic zero.
+        - name: CPUCreditBalance
+          statistics: [Average]
+        - name: CPUCreditUsage
+          statistics: [Average]
+
+        # --- Latency / throughput / IOPS ---
+        - name: ReadLatency
+          statistics: [Average]
+        - name: WriteLatency
+          statistics: [Average]
+        - name: ReadThroughput
+          statistics: [Average]
+        - name: WriteThroughput
+          statistics: [Average]
+        - name: ReadIOPS
+          statistics: [Average]
+        - name: WriteIOPS
+          statistics: [Average]
+        - name: DiskQueueDepth
+          statistics: [Average]
+        - name: CommitLatency
+          statistics: [Average]
+        - name: CommitThroughput
+          statistics: [Average]
+
+        # --- Cache / memory (Aurora PostgreSQL-specific) ---
+        - name: BufferCacheHitRatio
+          statistics: [Average]
+        # Aurora PostgreSQL-specific optimized reads cache; only present when Optimized Reads
+        # (local NVMe cache) is available/enabled on the primary instance. Optional/no-data on
+        # other configurations.
+        - name: AuroraOptimizedReadsCacheHitRatio
+          statistics: [Average]
+        # Aurora PostgreSQL-specific; only reported on the primary/writer instance.
+        - name: AuroraEstimatedSharedMemoryBytes
+          statistics: [Average]
+
+        # --- Errors / concurrency ---
+        - name: Deadlocks
+          statistics: [Sum]
+
+        # --- Vacuum / transaction ID wraparound risk (Aurora PostgreSQL-specific) ---
+        - name: MaximumUsedTransactionIDs
+          statistics: [Maximum]
+
+        # --- Storage (instance-local, distinct from cluster shared storage) ---
+        - name: FreeLocalStorage
+          statistics: [Average]
+        - name: FreeEphemeralStorage
+          statistics: [Average]
+        # --- Network ---
+        - name: NetworkReceiveThroughput
+          statistics: [Average]
+        - name: NetworkTransmitThroughput
+          statistics: [Average]
+        - name: StorageNetworkThroughput
+          statistics: [Average]
+
+        # --- Replication ---
+        # AuroraReplicaLag: populated on reader instances only (lag of that specific reader).
+        # AuroraReplicaLagMaximum/Minimum: DISTINCT CloudWatch metrics (not statistics of
+        # AuroraReplicaLag) reported on the PRIMARY/writer instance, giving the max/min lag
+        # across all readers in the cluster -- per AWS docs: "the maximum/minimum amount of lag
+        # between the primary instance and any of the Aurora DB instance in the DB cluster."
+        - name: AuroraReplicaLag
+          statistics: [Average]
+        - name: AuroraReplicaLagMaximum
+          statistics: [Average]
+        - name: AuroraReplicaLagMinimum
+          statistics: [Average]
+        # OldestReplicationSlotLag reports Aurora PostgreSQL replication-slot lag.
+        - name: OldestReplicationSlotLag
+          statistics: [Maximum]
+        - name: ReplicationSlotDiskUsage
+          statistics: [Average]
+        - name: TransactionLogsDiskUsage
+          statistics: [Average]
+
+        # --- Serverless v2 capacity (optional; only present when using Aurora Serverless v2) ---
+        - name: ACUUtilization
+          statistics: [Average]
+
+    # ------------------------------------------------------------------
+    # Job 2: Cluster-level Aurora metrics (shared distributed storage volume).
+    # These carry the DBClusterIdentifier dimension instead of DBInstanceIdentifier.
+    # ------------------------------------------------------------------
+    - type: AWS/RDS
+      regions:
+        - us-east-1 # placeholder region; set to your cluster's actual region(s)
+      searchTags:
+        - key: aurora-observability
+          value: "true"
+      dimensionNameRequirements:
+        - DBClusterIdentifier
+      period: 60
+      length: 300
+      statistics:
+        - Average
+      metrics:
+        - name: VolumeBytesUsed
+          statistics: [Average]
+        - name: VolumeReadIOPs
+          statistics: [Sum]
+        - name: VolumeWriteIOPs
+          statistics: [Sum]
+        - name: BackupRetentionPeriodStorageUsed
+          statistics: [Average]
+        - name: TotalBackupStorageBilled
+          statistics: [Average]
+        - name: SnapshotStorageUsed
+          statistics: [Average]
+        # Only emits data for Aurora Serverless v2 clusters; provisioned clusters have no series.
+        - name: ServerlessDatabaseCapacity
+          statistics: [Average, Maximum]

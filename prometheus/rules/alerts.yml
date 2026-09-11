@@ -1,0 +1,206 @@
+# Alerting rules for the Aurora PostgreSQL observability stack.
+# Runbook links point at docs/troubleshooting.md anchors in this repository.
+#
+# Every alert expression references only metrics emitted by:
+#   - prometheus-community/postgres_exporter v0.20.1 (collectors enabled in
+#     systemd/postgres_exporter.service), or
+#   - prometheus-community/yet-another-cloudwatch-exporter v0.67.0 per
+#     exporters/yace/config.yml
+groups:
+  - name: aurora_postgresql_availability
+    rules:
+      - alert: AuroraPostgresInstanceDown
+        expr: pg_up == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: aurora-postgresql
+        annotations:
+          summary: "Aurora PostgreSQL instance {{ $labels.instance }} is unreachable"
+          description: >-
+            postgres_exporter has been unable to connect to (or successfully ping) the
+            PostgreSQL instance on {{ $labels.instance }} for 2 minutes. pg_up == 0 means the
+            exporter process is running but the database connection is failing.
+          runbook_url: "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresinstancedown"
+
+      - alert: PostgresExporterScrapeFailed
+        expr: up{job="postgres_exporter"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: postgres_exporter
+        annotations:
+          summary: "Prometheus cannot scrape postgres_exporter on {{ $labels.instance }}"
+          description: >-
+            The postgres_exporter target {{ $labels.instance }} has failed its last scrape
+            attempts for 2 minutes. This means the exporter process itself (not just the
+            database) is unreachable -- check the systemd unit status and network path.
+          runbook_url: "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#postgresexporterscrapefailed"
+
+      - alert: PostgresExporterCollectorFailing
+        expr: pg_scrape_collector_success == 0
+        for: 15m
+        labels:
+          severity: warning
+          service: postgres_exporter
+        annotations:
+          summary: "postgres_exporter collector '{{ $labels.collector }}' failing on {{ $labels.instance }}"
+          description: >-
+            The {{ $labels.collector }} collector has returned an error on every scrape of
+            {{ $labels.instance }} for 15 minutes. Some dashboard panels fed by this collector
+            will show stale or missing data. Check exporter logs for the underlying SQL error.
+          runbook_url: "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#postgresexportercollectorfailing"
+
+      - alert: YaceExporterScrapeFailed
+        expr: up{job="yace"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: yace
+        annotations:
+          summary: "Prometheus cannot scrape YACE on {{ $labels.instance }}"
+          description: >-
+            The yet-another-cloudwatch-exporter target has failed its last scrape attempts for
+            5 minutes. AWS/RDS CloudWatch-derived panels (storage volume, replica lag from AWS's
+            perspective, etc.) will be stale until this recovers.
+          runbook_url: "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#yaceexporterscrapefailed"
+
+  - name: aurora_postgresql_connections
+    rules:
+      # NOTE: these intentionally inline the full expression rather than referencing the
+      # aurora:connections_used_ratio recording rule. Alerting rules that depend on a recording
+      # rule in a *different* rule group have no evaluation-order guarantee relative to that
+      # group in Prometheus (groups are scheduled independently) -- for a `for:`-duration alert
+      # that must see a consistent value on every consecutive evaluation, that ordering gap can
+      # delay when the alert starts/stops being pending. Keeping the expression self-contained
+      # here avoids that entirely; aurora:connections_used_ratio still exists for dashboard use,
+      # where eventual consistency across one evaluation interval doesn't matter.
+      - alert: AuroraPostgresHighConnections
+        expr: |
+          sum by (cluster, instance) (pg_stat_activity_count)
+          / on (cluster, instance) group_left()
+          max by (cluster, instance) (pg_settings_max_connections)
+          > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          service: aurora-postgresql
+        annotations:
+          summary: "{{ $labels.instance }} is using {{ $value | humanizePercentage }} of max_connections"
+          description: >-
+            Connection count has exceeded 80% of pg_settings_max_connections for 10 minutes on
+            {{ $labels.instance }}. New connections risk being rejected with
+            "FATAL: too many connections".
+          runbook_url: "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgreshighconnections"
+
+      - alert: AuroraPostgresHighConnectionsCritical
+        expr: |
+          sum by (cluster, instance) (pg_stat_activity_count)
+          / on (cluster, instance) group_left()
+          max by (cluster, instance) (pg_settings_max_connections)
+          > 0.95
+        for: 5m
+        labels:
+          severity: critical
+          service: aurora-postgresql
+        annotations:
+          summary: "{{ $labels.instance }} is close to exhausting max_connections"
+          description: >-
+            Connection count has exceeded 95% of pg_settings_max_connections for 5 minutes on
+            {{ $labels.instance }}. Application connection errors are imminent or already
+            occurring.
+          runbook_url: "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgreshighconnectionscritical"
+
+  - name: aurora_postgresql_replication
+    rules:
+      # See the NOTE under aurora_postgresql_connections above: inlined rather than referencing
+      # aurora:replica_lag_seconds:max, to avoid a cross-rule-group evaluation-order dependency.
+      - alert: AuroraPostgresReplicaLagHigh
+        expr: max by (cluster, instance) (pg_replication_lag_seconds) > 30
+        for: 5m
+        labels:
+          severity: warning
+          service: aurora-postgresql
+        annotations:
+          summary: "Replica {{ $labels.instance }} is {{ $value }}s behind the writer"
+          description: >-
+            pg_replication_lag_seconds has exceeded 30 seconds for 5 minutes on
+            {{ $labels.instance }}. Read traffic served by this reader may return stale data.
+          runbook_url: "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresreplicalaghigh"
+
+      - alert: AuroraPostgresReplicaLagCritical
+        expr: max by (cluster, instance) (pg_replication_lag_seconds) > 120
+        for: 5m
+        labels:
+          severity: critical
+          service: aurora-postgresql
+        annotations:
+          summary: "Replica {{ $labels.instance }} is critically behind the writer ({{ $value }}s)"
+          description: >-
+            pg_replication_lag_seconds has exceeded 120 seconds for 5 minutes on
+            {{ $labels.instance }}. Investigate long-running queries/locks on the reader or
+            writer-side load; consider failing traffic away from this replica.
+          runbook_url: "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresreplicalagcritical"
+
+  - name: aurora_postgresql_vacuum
+    rules:
+      # Requires --collector.database_wraparound (enabled in systemd/postgres_exporter.service;
+      # disabled upstream by default). PostgreSQL forces a database into read-only mode at a
+      # transaction ID age of 2,146,483,648 (2^31 - 1,000,000):
+      # https://www.postgresql.org/docs/current/routine-vacuuming.html#VACUUM-FOR-WRAPAROUND
+      # Note the pg_database_wraparound_age_datfrozenxid_seconds metric name carries a "_seconds"
+      # suffix inherited from the exporter's naming convention, but its value is a transaction-ID
+      # AGE (a count), not a duration -- see docs/metrics-reference.md.
+      #
+      # Also see the NOTE under aurora_postgresql_connections above: inlined rather than
+      # referencing aurora:xid_age_datfrozenxid:max, to avoid a cross-rule-group evaluation-order
+      # dependency.
+      - alert: AuroraPostgresXIDWraparoundWarning
+        expr: max by (cluster, instance, datname) (pg_database_wraparound_age_datfrozenxid_seconds) > 1000000000
+        for: 30m
+        labels:
+          severity: warning
+          service: aurora-postgresql
+        annotations:
+          summary: "Database {{ $labels.datname }} on {{ $labels.instance }} is accumulating transaction ID age"
+          description: >-
+            The oldest unfrozen transaction ID age for {{ $labels.datname }} is
+            {{ $value | humanize }}, more than 1 billion transactions old (of a 2.146 billion
+            hard limit). Confirm autovacuum is running and not blocked by long-lived transactions
+            or replication slots.
+          runbook_url: "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresxidwraparoundwarning"
+
+      - alert: AuroraPostgresXIDWraparoundCritical
+        expr: max by (cluster, instance, datname) (pg_database_wraparound_age_datfrozenxid_seconds) > 1700000000
+        for: 10m
+        labels:
+          severity: critical
+          service: aurora-postgresql
+        annotations:
+          summary: "Database {{ $labels.datname }} on {{ $labels.instance }} is approaching transaction ID wraparound"
+          description: >-
+            The oldest unfrozen transaction ID age for {{ $labels.datname }} is
+            {{ $value | humanize }}, approaching the 2,146,483,648 hard limit at which
+            PostgreSQL/Aurora forces the database into read-only mode to prevent data loss.
+            Treat as an emergency: run a manual `VACUUM (FREEZE, VERBOSE)` and identify what is
+            blocking autovacuum (long transactions, orphaned replication slots, prepared
+            transactions).
+          runbook_url: "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresxidwraparoundcritical"
+
+  - name: aurora_postgresql_errors
+    rules:
+      # See the NOTE under aurora_postgresql_connections above: inlined rather than referencing
+      # aurora:deadlocks:rate5m, to avoid a cross-rule-group evaluation-order dependency.
+      - alert: AuroraPostgresDeadlocksElevated
+        expr: sum by (cluster, instance) (rate(pg_stat_database_deadlocks[5m])) > 0
+        for: 10m
+        labels:
+          severity: warning
+          service: aurora-postgresql
+        annotations:
+          summary: "Deadlocks detected on {{ $labels.instance }}"
+          description: >-
+            {{ $labels.instance }} has recorded a sustained non-zero deadlock rate
+            ({{ $value | humanize }} / s) for 10 minutes. Review application transaction
+            ordering and lock contention.
+          runbook_url: "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresdeadlockselevated"

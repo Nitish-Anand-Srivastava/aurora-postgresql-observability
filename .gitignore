@@ -1,0 +1,82 @@
+# === Secrets & credentials (never commit) ===
+# Runtime-only credential files. Templates end in .example / .template and ARE tracked.
+# NOTE: patterns here deliberately target specific FILE name shapes rather than directory names
+# like "secrets" -- a directory-matching gitignore pattern would hide even the *.example
+# templates nested inside it (git cannot "un-ignore" files inside an ignored directory).
+*.env
+.env
+.env.*
+!*.env.example
+!*.env.template
+*.secret
+*.secret.*
+!*.secret.example
+*password*.txt
+*password*.env
+!*password*.txt.example
+!*password*.env.example
+*.pem
+*.key
+!*.key.example
+*.crt
+*.p12
+*.pfx
+*.pgpass
+.pgpass
+pgpass.conf
+*.dsn
+DATA_SOURCE_NAME
+data_source_name.txt
+
+# postgres_exporter / YACE runtime secret files referenced by systemd EnvironmentFile
+/run/secrets/
+
+# docker compose secrets: real files are gitignored, *.example templates stay tracked
+docker/secrets/*.txt
+!docker/secrets/*.txt.example
+docker/aws-credentials
+!docker/aws-credentials.example
+
+# === AWS ===
+.aws/
+aws_credentials
+credentials
+credentials.*
+!credentials.*.example
+*.tfstate
+*.tfstate.backup
+*.tfvars
+!*.tfvars.example
+
+# === Local validation tooling ===
+.cache/
+/tools/
+*.download
+validation-output/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# === Docker Compose local state ===
+docker/.data/
+docker/grafana-data/
+docker/prometheus-data/
+*.override.yml
+docker-compose.override.yml
+
+# === Editors / OS ===
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# === Logs ===
+*.log
+logs/
+
+# === Node / misc (docs tooling, if used) ===
+node_modules/

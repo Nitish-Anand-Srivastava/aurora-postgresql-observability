@@ -1,0 +1,183 @@
+# Local validation stack for the Aurora PostgreSQL observability configuration.
+#
+# SAFE BY DEFAULT: `docker compose up` starts Prometheus, Grafana, postgres_exporter (scraping a
+# disposable local PostgreSQL container, NOT a real Aurora cluster), and YACE. Nothing here
+# connects to real AWS/Aurora infrastructure unless you explicitly supply real AWS credentials in
+# aws-credentials (see below) — without them, the yace container will log CloudWatch
+# authentication/API errors and simply report 0 AWS metrics; every other service still starts and
+# is fully usable for validating dashboards, Prometheus rules, and postgres_exporter wiring.
+#
+# Images are pinned to specific, currently published stable releases (see docs/setup.md for the
+# authoritative source of each version). Do not change tags to `latest`.
+#
+# Usage:
+#   cd docker
+#   cp secrets/postgres_superuser_password.txt.example secrets/postgres_superuser_password.txt
+#   cp secrets/pg_exporter_password.txt.example secrets/pg_exporter_password.txt
+#   cp secrets/grafana_admin_password.txt.example secrets/grafana_admin_password.txt
+#   docker compose up -d
+#   open http://localhost:3000       (Grafana; default admin/admin, change on first login)
+#   open http://localhost:9090       (Prometheus)
+#   open http://localhost:9187/metrics  (postgres_exporter)
+#   open http://localhost:5000/metrics  (yace)
+#
+# To exercise YACE against real AWS (OPTIONAL, not required for dashboard/rule validation):
+#   cp aws-credentials.example aws-credentials   # fill in real, non-committed credentials
+#   uncomment the aws-credentials volume mount and AWS_SHARED_CREDENTIALS_FILE env var below
+
+name: aurora-postgresql-observability
+
+services:
+  # Disposable local database standing in for Aurora PostgreSQL so postgres_exporter has a real
+  # target to scrape without touching any live infrastructure. This is NOT a substitute for Aurora
+  # in production - see docs/setup.md.
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_superuser_password
+    secrets:
+      - postgres_superuser_password
+    volumes:
+      - ../sql/create_monitoring_role.sql:/docker-entrypoint-initdb.d/10-create_monitoring_role.sql:ro
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # One-shot job that sets the pg_exporter role's password from the same local-only secret file
+  # postgres_exporter reads, since `CREATE ROLE ... WITH LOGIN` in create_monitoring_role.sql
+  # deliberately does not set a password (see the SQL file's header comment).
+  postgres-init-password:
+    image: postgres:17-alpine
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: postgres
+    secrets:
+      - postgres_superuser_password
+      - pg_exporter_password
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >
+        : "placeholder runtime password from secret file"; export PGPASSWORD="$$(cat /run/secrets/postgres_superuser_password)" &&
+        psql -v ON_ERROR_STOP=1
+        --set=placeholder_exporter_password="$$(cat /run/secrets/pg_exporter_password)"
+        -c "ALTER ROLE pg_exporter WITH PASSWORD :'placeholder_exporter_password'"
+    restart: "no"
+
+  postgres_exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.20.1
+    restart: unless-stopped
+    depends_on:
+      postgres-init-password:
+        condition: service_completed_successfully
+    environment:
+      DATA_SOURCE_URI: "postgres:5432/postgres?sslmode=disable"
+      DATA_SOURCE_USER: "pg_exporter"
+      DATA_SOURCE_PASS_FILE: "/run/secrets/pg_exporter_password"
+      PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
+    command:
+      - "--collector.database"
+      - "--collector.locks"
+      - "--collector.replication"
+      - "--collector.replication_slots"
+      - "--collector.settings"
+      - "--collector.stat_activity"
+      - "--collector.stat_archiver"
+      - "--collector.stat_bgwriter"
+      - "--collector.stat_checkpointer"
+      - "--collector.stat_database"
+      - "--collector.stat_user_tables"
+      - "--collector.statio_user_tables"
+      - "--collector.stat_progress_vacuum"
+      - "--collector.stat_replication"
+      - "--collector.wal"
+      - "--collector.database_wraparound"
+      - "--config.file="
+    secrets:
+      - pg_exporter_password
+    ports:
+      - "127.0.0.1:9187:9187"
+
+  # YACE authenticates via the AWS SDK default credential chain. With no credentials supplied
+  # (the default in this compose file) it will run and expose /metrics, but every scrape attempt
+  # will fail CloudWatch authentication and log errors -- this is expected and does not block the
+  # rest of the stack. See the "Usage" comment above to opt into real AWS calls.
+  yace:
+    image: quay.io/prometheuscommunity/yet-another-cloudwatch-exporter:v0.67.0
+    restart: unless-stopped
+    command:
+      - "-config.file=/tmp/config.yml"
+      - "-listen-address=0.0.0.0:5000"
+    volumes:
+      - ../exporters/yace/config.yml:/tmp/config.yml:ro
+      # Uncomment to exercise YACE against real AWS credentials (see the "Usage" comment above).
+      # - ./aws-credentials:/home/.aws/credentials:ro
+    environment:
+      AWS_EC2_METADATA_DISABLED: "true"
+      # Uncomment together with the volume mount above.
+      # AWS_SHARED_CREDENTIALS_FILE: /home/.aws/credentials
+    ports:
+      - "127.0.0.1:5000:5000"
+
+  prometheus:
+    image: prom/prometheus:v3.14.0
+    restart: unless-stopped
+    depends_on:
+      - postgres_exporter
+      - yace
+    volumes:
+      - ./prometheus.local.yml:/etc/prometheus/prometheus.yml:ro
+      - ../prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=6h"
+    ports:
+      - "127.0.0.1:9090:9090"
+
+  grafana:
+    image: grafana/grafana:13.2.1
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: "admin"
+      # Grafana's documented secret-injection mechanism is the $__file{} config provider (not an
+      # env-var _FILE suffix): https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/#file-provider
+      # The leading "$$" (rather than "$") is required so Docker Compose passes a literal "$" to
+      # the container instead of trying to interpolate it itself.
+      GF_SECURITY_ADMIN_PASSWORD: "$$__file{/run/secrets/grafana_admin_password}"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    secrets:
+      - grafana_admin_password
+    volumes:
+      - ../grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+
+secrets:
+  postgres_superuser_password:
+    file: ./secrets/postgres_superuser_password.txt
+  pg_exporter_password:
+    file: ./secrets/pg_exporter_password.txt
+  grafana_admin_password:
+    file: ./secrets/grafana_admin_password.txt
+
+volumes:
+  pgdata:
+  prometheus-data:
+  grafana-data:

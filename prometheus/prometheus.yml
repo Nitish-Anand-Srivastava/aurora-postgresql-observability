@@ -1,0 +1,100 @@
+# Prometheus v3.14.0 configuration for Aurora PostgreSQL observability.
+# https://github.com/prometheus/prometheus/releases/tag/v3.14.0
+# Scrape config reference: https://prometheus.io/docs/prometheus/latest/configuration/configuration/
+#
+# This file wires up two scrape jobs:
+#   1. postgres_exporter  - PostgreSQL engine metrics (pg_*), one target per instance.
+#   2. yace                - AWS/RDS CloudWatch metrics (aws_rds_*), one target for the YACE process.
+# Plus self-monitoring of Prometheus itself.
+#
+# All targets below use RFC 2606-style .invalid / documentation hostnames as placeholders.
+# Replace with your real exporter endpoints (or Prometheus service discovery) at deploy time.
+
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+  external_labels:
+    environment: "example"
+
+rule_files:
+  - "rules/recording_rules.yml"
+  - "rules/alerts.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        # Placeholder Alertmanager target. Point at your real Alertmanager, or remove this block
+        # if you forward alerts a different way (e.g. Amazon Managed Service for Prometheus).
+        - targets: ["alertmanager.observability.invalid:9093"]
+
+scrape_configs:
+  # --- Prometheus self-monitoring ---
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # --- postgres_exporter: one static target per Aurora instance (writer + each reader) ---
+  # https://github.com/prometheus-community/postgres_exporter — default port 9187, path /metrics.
+  - job_name: "postgres_exporter"
+    scrape_interval: 30s
+    scrape_timeout: 15s
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - "aurora-writer-exporter.observability.invalid:9187"
+        labels:
+          cluster: "example-aurora-cluster"
+          # Keep this equal to the AWS DBInstanceIdentifier. The shared value lets one Grafana
+          # instance selector filter both postgres_exporter and YACE metrics.
+          instance: "example-aurora-writer"
+          role: "writer"
+      - targets:
+          - "aurora-reader1-exporter.observability.invalid:9187"
+        labels:
+          cluster: "example-aurora-cluster"
+          instance: "example-aurora-reader-1"
+          role: "reader"
+
+  # Example of the OPTIONAL multi-target /probe pattern (disabled here; see
+  # exporters/postgres_exporter/postgres_exporter.yml). Uncomment only if you run postgres_exporter
+  # in multi-target mode instead of one process per instance.
+  # - job_name: "postgres_exporter_multi_target"
+  #   metrics_path: /probe
+  #   params:
+  #     auth_module: [aurora_pg]
+  #   static_configs:
+  #     - targets:
+  #         - "aurora-writer.cluster-example.us-east-1.rds.invalid:5432"
+  #   relabel_configs:
+  #     - source_labels: [__address__]
+  #       target_label: __param_target
+  #     - source_labels: [__param_target]
+  #       target_label: instance
+  #     - target_label: __address__
+  #       replacement: "postgres-exporter-multi.observability.invalid:9187"
+
+  # --- YACE: scrapes ordinary CloudWatch AWS/RDS metrics (NOT Performance Insights/Database
+  # Insights - see docs/architecture.md for that API boundary). ---
+  # https://github.com/prometheus-community/yet-another-cloudwatch-exporter — default port 5000.
+  - job_name: "yace"
+    scrape_interval: 300s # matches YACE's own -scraping-interval; CloudWatch RDS metrics are 60s-granular at best
+    scrape_timeout: 30s
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - "yace.observability.invalid:5000"
+        labels:
+          cluster: "example-aurora-cluster"
+    metric_relabel_configs:
+      # Normalize YACE's CloudWatch dimensions and exported AuroraCluster tag to the same labels
+      # used by postgres_exporter targets. Tag every DB instance and cluster with
+      # AuroraCluster=<DBClusterIdentifier>; the dimension rules provide exact resource IDs.
+      - source_labels: [tag_AuroraCluster]
+        regex: "(.+)"
+        target_label: cluster
+      - source_labels: [dimension_DBClusterIdentifier]
+        regex: "(.+)"
+        target_label: cluster
+      - source_labels: [dimension_DBInstanceIdentifier]
+        regex: "(.+)"
+        target_label: instance

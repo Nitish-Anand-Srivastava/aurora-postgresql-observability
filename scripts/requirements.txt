@@ -1,0 +1,6 @@
+# Python dependencies for scripts/validate.py and scripts/checks/*.
+#
+# Kept intentionally minimal. YAML validation gracefully degrades to a best-effort structural
+# check (see scripts/checks/check_yaml.py) if PyYAML is not installed, but installing it gives
+# full parser-level validation, so CI always installs this pinned version.
+PyYAML==6.0.3

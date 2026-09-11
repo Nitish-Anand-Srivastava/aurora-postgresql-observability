@@ -1,0 +1,35 @@
+# promtool unit test: AuroraPostgresReplicaLagCritical (prometheus/rules/alerts.yml).
+# Kept in its own file (separate from the High/warning variant) -- see test_replica_lag_high.yml.
+rule_files:
+  - ../rules/recording_rules.yml
+  - ../rules/alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'pg_replication_lag_seconds{cluster="test-cluster",instance="aurora-reader1.observability.invalid:9187"}'
+        values: "0x2 150x10"
+    alert_rule_test:
+      # "0x2" is 3 samples (t=0,1,2) of 0, then "150x10" is 11 samples (t=3..13) of 150. Lag
+      # crosses the 120s threshold at t=3m; "for: 5m" fires at t=8m.
+      - eval_time: 7m
+        alertname: AuroraPostgresReplicaLagCritical
+        exp_alerts: []
+      - eval_time: 8m
+        alertname: AuroraPostgresReplicaLagCritical
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              service: aurora-postgresql
+              cluster: test-cluster
+              instance: aurora-reader1.observability.invalid:9187
+            exp_annotations:
+              summary: "Replica aurora-reader1.observability.invalid:9187 is critically behind the writer (150s)"
+              runbook_url: "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresreplicalagcritical"
+              description: >-
+                pg_replication_lag_seconds has exceeded 120 seconds for 5 minutes on
+                aurora-reader1.observability.invalid:9187. Investigate long-running queries/locks
+                on the reader or writer-side load; consider failing traffic away from this
+                replica.

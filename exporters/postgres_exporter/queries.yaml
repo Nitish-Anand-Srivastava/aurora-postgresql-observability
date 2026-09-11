@@ -1,0 +1,44 @@
+# DEPRECATED / OPTIONAL — custom queries for postgres_exporter's `--extend.query-path` flag.
+#
+# Upstream marks this entire mechanism deprecated (see the `extend.query-path` flag description in
+# https://github.com/prometheus-community/postgres_exporter#flags and main.go, which logs a
+# "DEPRECATED" warning whenever --extend.query-path is set). It is kept here, disabled by default,
+# ONLY for the handful of signals that have no built-in collector equivalent. Before adding a query
+# here, check whether a built-in `--collector.*` flag already covers it — those are preferred
+# because they are versioned/tested upstream and do not require maintaining hand-written SQL.
+#
+# This repo does NOT enable --extend.query-path by default (see
+# exporters/postgres_exporter/postgres_exporter.env.template and systemd/postgres_exporter.service).
+# To use it: set PG_EXPORTER_EXTEND_QUERY_PATH to this file's path and accept the deprecation
+# warning in the exporter logs.
+#
+# Every metric defined below is OPTIONAL and is called out as such in
+# docs/metrics-reference.md and any dashboard panel that reads it.
+
+pg_invalid_indexes:
+  query: |
+    SELECT
+      current_database() AS datname,
+      n.nspname AS schemaname,
+      c.relname AS indexrelname,
+      1 AS invalid
+    FROM pg_catalog.pg_index i
+    JOIN pg_catalog.pg_class c ON c.oid = i.indexrelid
+    JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+    WHERE i.indisvalid = false
+  metrics:
+    - datname:
+        usage: "LABEL"
+        description: "Database name"
+    - schemaname:
+        usage: "LABEL"
+        description: "Schema name"
+    - indexrelname:
+        usage: "LABEL"
+        description: "Index name"
+    - invalid:
+        usage: "GAUGE"
+        description: >-
+          OPTIONAL/deprecated custom metric. 1 for every index left invalid by a failed or
+          cancelled `CREATE INDEX CONCURRENTLY` / `REINDEX CONCURRENTLY`. No built-in collector
+          exposes this; there is no equivalent pg_catalog stat view collector for it upstream.

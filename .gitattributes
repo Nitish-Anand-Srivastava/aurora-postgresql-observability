@@ -1,0 +1,8 @@
+# Enforce LF line endings for all text files regardless of the contributor's OS/editor, so
+# CI linters (yamllint, markdownlint, actionlint's embedded shellcheck) see consistent input and
+# git diffs don't get polluted by line-ending churn.
+* text=auto eol=lf
+
+# Windows-specific scripts, if ever added, should keep CRLF (batch files require it).
+*.bat text eol=crlf
+*.cmd text eol=crlf

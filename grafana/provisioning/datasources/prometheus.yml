@@ -1,0 +1,22 @@
+# Grafana datasource provisioning (file-based provisioning API).
+# https://grafana.com/docs/grafana/latest/administration/provisioning/#datasources
+#
+# Creates a Prometheus datasource named "Prometheus" pointed at the Prometheus instance on the
+# same Docker Compose network / host. The dashboard JSON in ../dashboards uses the
+# `${DS_PROMETHEUS}` templating variable (a datasource-type template variable), NOT a hardcoded
+# datasource UID, so it works regardless of what this datasource's UID happens to be -- see
+# docs/dashboard-guide.md.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    # In the local Docker Compose stack this resolves via the compose network; when deploying
+    # Grafana outside of Compose, change this to your real Prometheus endpoint.
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: 30s
+      httpMethod: POST

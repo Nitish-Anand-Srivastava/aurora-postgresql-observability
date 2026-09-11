@@ -1,0 +1,24 @@
+# yamllint configuration (https://yamllint.readthedocs.io/en/stable/configuration.html)
+# used by both `python scripts/validate.py` (best-effort, see scripts/checks/check_yaml.py) and
+# CI's reviewdog/action-yamllint job (.github/workflows/ci.yml).
+#
+# Extends the default ruleset but relaxes rules that don't fit this repo's style:
+#   - line-length: our YAML files favor long, wrapped explanatory comments over an 80-column
+#     limit; raised rather than disabled so truly extreme lines still get flagged.
+#   - document-start: not every file here needs a leading `---` (compose files, provisioning
+#     configs, GitHub Actions workflows don't conventionally use it).
+#   - truthy / check-keys: GitHub Actions workflow files use a bare `on:` key (workflow trigger
+#     section), which YAML 1.1 treats as a boolean-like key; without this, yamllint's default
+#     truthy check flags every workflow file's `on:` key as an error.
+extends: default
+
+rules:
+  line-length:
+    max: 260
+    allow-non-breakable-words: true
+    allow-non-breakable-inline-mappings: true
+  document-start: disable
+  truthy:
+    check-keys: false
+  comments:
+    min-spaces-from-content: 1

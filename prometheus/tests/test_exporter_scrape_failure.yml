@@ -1,0 +1,69 @@
+# promtool unit test: PostgresExporterScrapeFailed / YaceExporterScrapeFailed
+# (prometheus/rules/alerts.yml). See test_instance_down.yml for why each alert category is its
+# own file.
+rule_files:
+  - ../rules/recording_rules.yml
+  - ../rules/alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'up{job="postgres_exporter",instance="aurora-writer.observability.invalid:9187"}'
+        values: "1 1 1 0 0 0 0 0"
+      - series: 'up{job="yace",instance="yace.observability.invalid:5000"}'
+        values: "1 1 1 1 1 0 0 0 0 0"
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: PostgresExporterScrapeFailed
+        exp_alerts: [] # pending since t=3m, fires at t=5m
+      - eval_time: 5m
+        alertname: PostgresExporterScrapeFailed
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              service: postgres_exporter
+              job: postgres_exporter
+              instance: aurora-writer.observability.invalid:9187
+            exp_annotations:
+              summary: "Prometheus cannot scrape postgres_exporter on aurora-writer.observability.invalid:9187"
+              runbook_url: "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#postgresexporterscrapefailed"
+              description: >-
+                The postgres_exporter target aurora-writer.observability.invalid:9187 has failed
+                its last scrape attempts for 2 minutes. This means the exporter process itself
+                (not just the database) is unreachable -- check the systemd unit status and
+                network path.
+      - eval_time: 8m
+        alertname: YaceExporterScrapeFailed
+        exp_alerts: [] # pending since t=5m, "for: 5m" fires at t=10m
+      - eval_time: 10m
+        alertname: YaceExporterScrapeFailed
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              service: yace
+              job: yace
+              instance: yace.observability.invalid:5000
+            exp_annotations:
+              summary: "Prometheus cannot scrape YACE on yace.observability.invalid:5000"
+              runbook_url: "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#yaceexporterscrapefailed"
+              description: >-
+                The yet-another-cloudwatch-exporter target has failed its last scrape attempts
+                for 5 minutes. AWS/RDS CloudWatch-derived panels (storage volume, replica lag
+                from AWS's perspective, etc.) will be stale until this recovers.
+
+  - interval: 1m
+    input_series:
+      - series: 'pg_scrape_collector_success{cluster="test-cluster",instance="writer-1",collector="locks"}'
+        values: "1 0"
+      - series: 'pg_scrape_collector_success{cluster="test-cluster",instance="writer-1",collector="database"}'
+        values: "1 1"
+    promql_expr_test:
+      - expr: aurora:exporter_scrape_errors:sum
+        eval_time: 1m
+        exp_samples:
+          - labels: 'aurora:exporter_scrape_errors:sum{cluster="test-cluster",instance="writer-1",collector="locks"}'
+            value: 1
+          - labels: 'aurora:exporter_scrape_errors:sum{cluster="test-cluster",instance="writer-1",collector="database"}'
+            value: 0

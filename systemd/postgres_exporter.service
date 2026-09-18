@@ -2,15 +2,16 @@
 # https://github.com/prometheus-community/postgres_exporter/releases/tag/v0.20.1
 #
 # Install:
-#   sudo useradd --system --no-create-home --shell /usr/sbin/nologin postgres_exporter
+#   sudo useradd --system --no-create-home --home-dir /etc/postgres_exporter \
+#     --shell /usr/sbin/nologin postgres_exporter
 #   sudo install -d -o postgres_exporter -g postgres_exporter -m 0750 /etc/postgres_exporter
 #   sudo install -o postgres_exporter -g postgres_exporter -m 0640 postgres_exporter.env.template /etc/postgres_exporter/postgres_exporter.env
+#   sudo install -o postgres_exporter -g postgres_exporter -m 0640 postgres_exporter.yml /etc/postgres_exporter/postgres_exporter.yml
 #   # edit /etc/postgres_exporter/postgres_exporter.env with real (non-committed) values
 #   echo -n 'REPLACE_ME' | sudo tee /etc/postgres_exporter/pgpassword >/dev/null
 #   sudo chmod 0400 /etc/postgres_exporter/pgpassword
 #   sudo chown postgres_exporter:postgres_exporter /etc/postgres_exporter/pgpassword
 #   sudo cp queries.yaml /etc/postgres_exporter/queries.yaml   # optional, only if extend.query-path is used
-#   sudo cp postgres_exporter.yml /etc/postgres_exporter/postgres_exporter.yml  # optional multi-target only
 #   # download+verify the pinned binary from the authoritative release page above, then:
 #   sudo install -o root -g root -m 0755 postgres_exporter /usr/local/bin/postgres_exporter
 #   sudo cp postgres_exporter.service /etc/systemd/system/postgres_exporter.service
@@ -30,10 +31,10 @@ Group=postgres_exporter
 EnvironmentFile=/etc/postgres_exporter/postgres_exporter.env
 ExecStart=/usr/local/bin/postgres_exporter \
   --web.listen-address=0.0.0.0:9187 \
-  --config.file="" \
+  --config.file=/etc/postgres_exporter/postgres_exporter.yml \
   --collector.database \
   --collector.locks \
-  --collector.replication \
+  --no-collector.replication \
   --collector.replication_slots \
   --collector.settings \
   --collector.stat_activity \
@@ -59,6 +60,9 @@ ExecStart=/usr/local/bin/postgres_exporter \
 #   17+); the collector self-disables with a log warning on older engines instead of failing.
 # --collector.database_wraparound is disabled upstream by default but is explicitly enabled here
 #   because it feeds the XID wraparound risk alert in prometheus/rules/alerts.yml.
+# --collector.replication is explicitly disabled because Aurora PostgreSQL 17.7 rejects its
+#   pg_last_xact_replay_timestamp() call on writers. --collector.stat_replication remains enabled
+#   and provides per-connected-standby WAL lag from pg_stat_replication.
 # --collector.stat_statements, --collector.long_running_transactions, --collector.process_idle,
 #   --collector.stat_wal_receiver, --collector.postmaster, --collector.xlog_location, and
 #   --collector.statio_user_indexes stay OFF by default: stat_statements is high-cardinality and

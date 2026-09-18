@@ -47,9 +47,12 @@ Aurora PostgreSQL observability has two fundamentally different data sources:
    volume usage of the shared Aurora cluster volume, AWS's own replica lag measurement, IOPS/
    throughput as billed. Only reachable via the CloudWatch API -- YACE's job.
 
-Cross-checking the two (e.g. `pg_replication_lag_seconds` vs. `aws_rds_aurora_replica_lag_average`)
-is intentional and built into the shipped dashboard: they can diverge (e.g. during
-instance/network issues) and disagreement is itself a useful signal.
+Where supported, cross-checking the two (for example, optional `pg_replication_lag_seconds` versus
+`aws_rds_aurora_replica_lag_average`) is intentional and built into the shipped dashboard: they
+can diverge during instance/network issues, and disagreement is itself a useful signal. The
+generic postgres_exporter `replication` collector is disabled by default because Aurora
+PostgreSQL 17.7 rejects its `pg_last_xact_replay_timestamp()` call on writers; the distinct
+`stat_replication` collector remains enabled.
 
 ## CloudWatch API boundary
 

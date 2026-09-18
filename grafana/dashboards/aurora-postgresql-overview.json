@@ -3152,7 +3152,7 @@
       "id": 67,
       "type": "timeseries",
       "title": "Replica lag (PostgreSQL-reported)",
-      "description": "aurora:replica_lag_seconds:max recording rule from pg_replication_lag_seconds. Source: postgres_exporter replication collector (enabled by default), only non-zero on reader instances.",
+      "description": "OPTIONAL: aurora:replica_lag_seconds:max recording rule from pg_replication_lag_seconds. The generic postgres_exporter replication collector is disabled by this repo because Aurora PostgreSQL 17.7 rejects it on writers; enable it only for compatible targets.",
       "datasource": {
         "type": "datasource",
         "uid": "${DS_PROMETHEUS}"
@@ -3166,7 +3166,7 @@
       "fieldConfig": {
         "defaults": {
           "unit": "s",
-          "description": "aurora:replica_lag_seconds:max recording rule from pg_replication_lag_seconds. Source: postgres_exporter replication collector (enabled by default), only non-zero on reader instances.",
+          "description": "OPTIONAL: aurora:replica_lag_seconds:max recording rule from pg_replication_lag_seconds. The generic postgres_exporter replication collector is disabled by this repo because Aurora PostgreSQL 17.7 rejects it on writers; enable it only for compatible targets.",
           "min": 0,
           "thresholds": {
             "mode": "absolute",
@@ -3484,7 +3484,7 @@
       "id": 73,
       "type": "stat",
       "title": "Is replica (writer vs. reader)",
-      "description": "Source: postgres_exporter replication collector (enabled by default): pg_replication_is_replica (1 = reader, 0 = writer).",
+      "description": "OPTIONAL: pg_replication_is_replica (1 = reader, 0 = writer) comes from the generic postgres_exporter replication collector, which this repo disables because Aurora PostgreSQL 17.7 rejects it on writers.",
       "datasource": {
         "type": "datasource",
         "uid": "${DS_PROMETHEUS}"
@@ -3498,7 +3498,7 @@
       "fieldConfig": {
         "defaults": {
           "unit": "none",
-          "description": "Source: postgres_exporter replication collector (enabled by default): pg_replication_is_replica (1 = reader, 0 = writer).",
+          "description": "OPTIONAL: pg_replication_is_replica (1 = reader, 0 = writer) comes from the generic postgres_exporter replication collector, which this repo disables because Aurora PostgreSQL 17.7 rejects it on writers.",
           "min": 0
         },
         "overrides": []

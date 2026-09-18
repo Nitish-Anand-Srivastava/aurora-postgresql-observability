@@ -84,7 +84,8 @@ groups:
       - record: aurora:xid_age_datfrozenxid:max
         expr: max by (cluster, instance, datname) (pg_database_wraparound_age_datfrozenxid_seconds)
 
-      # --- Replication (populated on reader instances only) ---
+      # --- Replication (OPTIONAL: generic replication collector is disabled by this repo because
+      #     Aurora PostgreSQL 17.7 rejects pg_last_xact_replay_timestamp() on writers) ---
       - record: aurora:replica_lag_seconds:max
         expr: max by (cluster, instance) (pg_replication_lag_seconds)
 

@@ -1,15 +1,17 @@
-# Optional postgres_exporter configuration file (--config.file).
+# postgres_exporter configuration file (--config.file).
 #
-# This file is ONLY needed for the multi-target BETA feature
+# postgres_exporter v0.20.1 rejects an empty --config.file value, so both the systemd and Docker
+# deployments load this valid empty configuration in normal single-target mode.
+#
+# Auth modules are ONLY needed for the multi-target BETA feature
 # (https://github.com/prometheus-community/postgres_exporter#multi-target-support-beta),
 # where a single exporter process probes many Postgres targets via `/probe?target=...`.
 # That pattern is meant for cases where running the exporter as a sidecar/systemd unit next to
 # each database is impossible (e.g. SaaS-managed Postgres). For a self-managed Aurora cluster,
 # the recommended and simpler approach — used by default in this repo — is one exporter process
-# per instance (or per cluster) using DATA_SOURCE_URI/DATA_SOURCE_USER/DATA_SOURCE_PASS_FILE, with
-# `--config.file=""` to disable this file entirely. See systemd/postgres_exporter.service.
+# per instance (or per cluster) using DATA_SOURCE_URI/DATA_SOURCE_USER/DATA_SOURCE_PASS_FILE.
 #
-# If you do need multi-target mode, uncomment and adapt an auth_modules entry below, then point
+# If you do need multi-target mode, replace the empty map below with an auth module, then point
 # Prometheus at the exporter's /probe endpoint with a `target` param (see prometheus/prometheus.yml
 # for a documented, commented example job). NEVER put real credentials in this tracked file —
 # reference an untracked include or template this file at deploy time instead.
@@ -22,3 +24,5 @@
 #       password: "REPLACE_AT_DEPLOY_TIME_DO_NOT_COMMIT"
 #     options:
 #       sslmode: verify-full
+
+auth_modules: {}

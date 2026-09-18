@@ -115,6 +115,8 @@ groups:
     rules:
       # See the NOTE under aurora_postgresql_connections above: inlined rather than referencing
       # aurora:replica_lag_seconds:max, to avoid a cross-rule-group evaluation-order dependency.
+      # OPTIONAL: these alerts require the generic replication collector, which this repo
+      # disables on Aurora because pg_last_xact_replay_timestamp() is unsupported on writers.
       - alert: AuroraPostgresReplicaLagHigh
         expr: max by (cluster, instance) (pg_replication_lag_seconds) > 30
         for: 5m

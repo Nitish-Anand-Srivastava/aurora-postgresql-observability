@@ -4,12 +4,15 @@ Production Linux deployment for the two exporters as hardened, unprivileged syst
 
 | Unit | Purpose | Config | Env template |
 | --- | --- | --- | --- |
-| `postgres_exporter.service` | Scrapes Aurora PostgreSQL via the built-in collectors | `../exporters/postgres_exporter/postgres_exporter.yml` (optional) | `../exporters/postgres_exporter/postgres_exporter.env.template` |
+| `postgres_exporter.service` | Scrapes Aurora PostgreSQL via the built-in collectors | `../exporters/postgres_exporter/postgres_exporter.yml` | `../exporters/postgres_exporter/postgres_exporter.env.template` |
 | `yace.service` | Scrapes `AWS/RDS` CloudWatch metrics | `../exporters/yace/config.yml` | `../exporters/yace/yace.env.template` |
 
 Both units:
 
 - Run as a dedicated, unprivileged, non-login system user.
+- Give the postgres_exporter user `/etc/postgres_exporter` as its passwd home. With
+  `ProtectHome=true`, a `/home/postgres_exporter` home is inaccessible and libpq fails while
+  probing its default `~/.postgresql/postgresql.crt` path even when `sslrootcert` is explicit.
 - Read secrets only from files/environment referenced by `EnvironmentFile=`, never from the unit
   file itself or from tracked configuration.
 - Use `ProtectSystem=strict`, `NoNewPrivileges=true`, `PrivateTmp=true`, and related sandboxing

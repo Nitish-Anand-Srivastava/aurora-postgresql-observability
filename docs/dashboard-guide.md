@@ -63,9 +63,10 @@ it's optional -- this file gives the *why*, the panel description gives the *wha
   (forced read-only mode).
 - **WAL & Checkpoints**: checkpoint-specific panels are PostgreSQL 17+-only (`stat_checkpointer`);
   WAL size (`pg_wal_size_bytes`) works on every supported version.
-- **Replication / Readers**: PostgreSQL-side (`pg_replication_lag_seconds`) and AWS-side
-  (`aws_rds_aurora_replica_lag_average`) lag are both shown for the same cross-check reason as the
-  cache-hit-ratio row.
+- **Replication / Readers**: AWS-side `aws_rds_aurora_replica_lag_average` is enabled when YACE is
+  configured. PostgreSQL-side `pg_replication_lag_seconds` is OPTIONAL because Aurora PostgreSQL
+  17.7 rejects its generic collector on writers; the per-standby `stat_replication` panel remains
+  enabled.
 - **Exporter Health**: `pg_scrape_collector_success`/`_duration_seconds` are the same series the
   `PostgresExporterCollectorFailing` alert watches; `yace_cloudwatch_requests_total` is YACE's own
   self-monitoring metric, useful for CloudWatch API cost/throttling awareness.

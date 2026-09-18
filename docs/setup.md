@@ -59,11 +59,15 @@ consistent across SQL and CloudWatch metrics:
 
 ```bash
 # See systemd/postgres_exporter.service for full install steps, verification, and flags.
-sudo useradd --system --no-create-home --shell /usr/sbin/nologin postgres_exporter
+sudo useradd --system --no-create-home --home-dir /etc/postgres_exporter \
+  --shell /usr/sbin/nologin postgres_exporter
 sudo install -d -o postgres_exporter -g postgres_exporter -m 0750 /etc/postgres_exporter
 sudo install -o postgres_exporter -g postgres_exporter -m 0640 \
   exporters/postgres_exporter/postgres_exporter.env.template \
   /etc/postgres_exporter/postgres_exporter.env
+sudo install -o postgres_exporter -g postgres_exporter -m 0640 \
+  exporters/postgres_exporter/postgres_exporter.yml \
+  /etc/postgres_exporter/postgres_exporter.yml
 # Install the global RDS CA bundle downloaded in step 1 for the service account. Review AWS
 # certificate rotation guidance before upgrades:
 # https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.SSL.html
@@ -76,6 +80,11 @@ printf '%s' 'REPLACE_WITH_REAL_PASSWORD' | sudo tee /etc/postgres_exporter/pgpas
 sudo chmod 0400 /etc/postgres_exporter/pgpassword
 sudo chown postgres_exporter:postgres_exporter /etc/postgres_exporter/pgpassword
 ```
+
+The passwd home must be `/etc/postgres_exporter`, even though `--no-create-home` prevents
+`useradd` from creating it. The hardened unit uses `ProtectHome=true`; leaving the default home at
+`/home/postgres_exporter` makes libpq's probe for `~/.postgresql/postgresql.crt` fail with
+`permission denied`, even when `DATA_SOURCE_URI` specifies an explicit `sslrootcert`.
 
 Download and verify the pinned `postgres_exporter` v0.20.1 binary from the authoritative release
 page: <https://github.com/prometheus-community/postgres_exporter/releases/tag/v0.20.1>

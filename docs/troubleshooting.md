@@ -89,7 +89,10 @@ identical, only the urgency differs.
 
 ## AuroraPostgresReplicaLagCritical
 
-**Meaning:** `pg_replication_lag_seconds` exceeded 30s (warning) or 120s (critical) on a reader.
+**Meaning:** optional `pg_replication_lag_seconds` exceeded 30s (warning) or 120s (critical) on a
+reader. This metric's generic `replication` collector is disabled in the shipped Aurora
+configuration because Aurora PostgreSQL 17.7 rejects it on writers; these alerts are dormant
+unless you explicitly enable that collector on compatible targets.
 
 1. Check the reader's CPU/IOPS (dashboard's CPU & I/O rows) -- is the reader under-provisioned for
    replay load?

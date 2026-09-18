@@ -41,8 +41,8 @@ source, verified directly against the tagged release rather than assumed from me
 | `pg_stat_user_tables_n_tup_ins` / `_upd` / `_del` | `stat_user_tables` | enabled | Row-level DML counters per table. |
 | `pg_stat_user_tables_n_live_tup` / `_n_dead_tup` | `stat_user_tables` | enabled | Live/dead row estimates (bloat proxy). |
 | `pg_statio_user_tables_heap_blocks_read` / `_hit` | `statio_user_tables` | enabled | Table heap I/O (disk vs. buffer cache). |
-| `pg_replication_is_replica` | `replication` | enabled | 1 on readers, 0 on the writer. |
-| `pg_replication_lag_seconds` | `replication` | enabled | Only meaningful (non-zero possible) on readers. |
+| `pg_replication_is_replica` | `replication` | **disabled by this repo (OPTIONAL)** | 1 on readers, 0 on the writer. Aurora PostgreSQL 17.7 rejects this collector's `pg_last_xact_replay_timestamp()` call on writers, so the shipped systemd and Docker configurations use `--no-collector.replication`. |
+| `pg_replication_lag_seconds` | `replication` | **disabled by this repo (OPTIONAL)** | Only meaningful on readers. Enable the generic `replication` collector only after verifying compatibility with every target; prefer the always-enabled `stat_replication` collector and AWS `AuroraReplicaLag` metrics on Aurora. |
 | `pg_replication_slots_pg_wal_lsn_diff` | `replication_slots` | enabled | Bytes of WAL a replication **slot** is retaining (per `slot_name`). Renamed from the singular `replication_slot` collector/metric family in older postgres_exporter releases -- v0.20.1 uses the plural `replication_slots` consistently for both the flag and the metric prefix. |
 | `pg_stat_replication_pg_wal_lsn_diff` | `stat_replication` | enabled | Bytes of WAL lag per **connected standby** (labels `application_name,client_addr,state,slot_name`), from `pg_stat_replication` -- distinct from `pg_replication_slots_pg_wal_lsn_diff` above, which is per replication *slot* (a slot can exist without an actively connected standby, and vice versa for physical replication without slots). |
 | `pg_stat_archiver_archived_count` / `_failed_count` | `stat_archiver` | enabled | Only meaningful if WAL archiving is configured/applicable. |
@@ -53,10 +53,12 @@ source, verified directly against the tagged release rather than assumed from me
 | `pg_stat_statements_calls_total` / `_seconds_total` | `stat_statements` | **disabled by default (OPTIONAL)** | Requires the `pg_stat_statements` extension (`CREATE EXTENSION`, added to `shared_preload_libraries`, reboot required) AND `--collector.stat_statements`. High-cardinality; assess before enabling. See `sql/create_monitoring_role.sql`. |
 | `pg_long_running_transactions` / `pg_long_running_transactions_oldest_timestamp_seconds` | `long_running_transactions` | **disabled by default (OPTIONAL)** | Count of, and age of the oldest, open (non-idle) transaction excluding autovacuum. Overlaps with the always-on `pg_stat_activity_max_tx_duration` (per label set) above; this collector instead gives a single fleet-wide count/max-age pair. Not enabled in this repo -- prefer the built-in `stat_activity` collector unless you specifically need the aggregate shape. |
 
-Collectors this repo explicitly disables (left at their upstream default of "off") and does not
-use in any dashboard/alert: `process_idle`, `stat_wal_receiver`,
-`postmaster`, `xlog_location`, `statio_user_indexes`. Flip the corresponding
-`--no-collector.*`/`--collector.*` flag in `systemd/postgres_exporter.service` if you need them.
+Collectors this repo explicitly disables include `replication` (enabled upstream, but unsupported
+on Aurora PostgreSQL 17.7 writers), plus the upstream-default-off `process_idle`,
+`stat_wal_receiver`, `postmaster`, `xlog_location`, and `statio_user_indexes`. The optional
+`pg_replication_*` dashboard panels and alerts remain available for compatible targets. Flip the
+corresponding `--no-collector.*`/`--collector.*` flag in
+`systemd/postgres_exporter.service` only after verifying target compatibility.
 
 ## yet-another-cloudwatch-exporter / YACE (`aws_rds_*`, `yace_*`)
 
@@ -172,8 +174,6 @@ pg_stat_user_tables_n_live_tup
 pg_stat_user_tables_n_dead_tup
 pg_statio_user_tables_heap_blocks_read
 pg_statio_user_tables_heap_blocks_hit
-pg_replication_is_replica
-pg_replication_lag_seconds
 pg_replication_slots_pg_wal_lsn_diff
 pg_stat_replication_pg_wal_lsn_diff
 pg_stat_archiver_archived_count
@@ -185,6 +185,8 @@ pg_wal_segments
 
 # postgres_exporter collectors OPTIONAL / non-default (enabled by this repo's systemd/compose, or
 # fully optional and left disabled)
+pg_replication_is_replica
+pg_replication_lag_seconds
 pg_stat_checkpointer_num_timed_total
 pg_stat_checkpointer_num_requested_total
 pg_stat_checkpointer_write_time_total

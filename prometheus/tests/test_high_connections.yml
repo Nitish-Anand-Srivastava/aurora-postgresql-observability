@@ -9,7 +9,10 @@ evaluation_interval: 1m
 tests:
   - interval: 1m
     input_series:
-      - series: 'pg_stat_activity_count{cluster="test-cluster",instance="aurora-writer.observability.invalid:9187",datname="postgres",state="active",usename="postgres_exporter",application_name="",backend_type="client backend",wait_event_type="",wait_event=""}'
+      - series: "pg_stat_activity_count{cluster=\"test-cluster\",\
+          instance=\"aurora-writer.observability.invalid:9187\",datname=\"postgres\",state=\"active\",\
+          usename=\"postgres_exporter\",application_name=\"\",backend_type=\"client backend\",\
+          wait_event_type=\"\",wait_event=\"\"}"
         values: "50x2 85x14"
       - series: 'pg_settings_max_connections{cluster="test-cluster",instance="aurora-writer.observability.invalid:9187"}'
         values: "100x17"

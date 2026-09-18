@@ -170,3 +170,21 @@ General guidance for the "Locks & Waits" dashboard row (not tied to a specific a
 - Re-run `python scripts/validate.py` after any configuration change -- it catches YAML/JSON syntax
   errors, invalid Prometheus rule syntax, and dashboard panels referencing undocumented metrics
   before you deploy.
+
+## Setup wizard and rollback
+
+- Run `python3 scripts/setup_observability.py --config <path> --non-interactive --preflight`
+  before `--apply`. It tests the existing config, endpoints, credential paths, and APIs without
+  changing the host.
+- If Prometheus is **2.30**, do not replace its config with the repository's newer sample. The
+  wizard adds/replaces only comment-marked jobs and rules, validates with that host's `promtool`,
+  and preserves all unrelated jobs.
+- If AssumeRole fails on an on-premises host, first make
+  `aws sts get-caller-identity --region <region>` work with the configured base provider. A role
+  ARN is not itself a credential.
+- Grafana 12.3.1 accepts the wizard's `/api/datasources`, `/api/folders`, and
+  `/api/dashboards/db` flow. `401`/`403` means the service-account token (or basic-auth account)
+  lacks datasource/folder/dashboard write permission; rotate the credential file, not the JSON.
+- If a Prometheus reload fails after a later manual change, restore
+  `<prometheus.yml>.aurora-setup.bak`, run `promtool check config`, and reload the configured
+  service. The wizard never deletes that first backup.

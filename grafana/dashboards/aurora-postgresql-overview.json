@@ -734,9 +734,113 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "**This is NOT the same as CloudWatch Database Insights 'DB Load' (Average Active Sessions).** AWS's Performance Insights feature reached end-of-life on July 31, 2026; existing users were migrated to CloudWatch Database Insights (Standard and Advanced modes). DB Load / AAS is only available via the Performance Insights compatibility API (`GetResourceMetrics` and related `pi:*` actions), which YACE does not and cannot scrape -- YACE only reads ordinary `AWS/RDS` CloudWatch namespace metrics. The panel below is a same-shape *proxy* built from `pg_stat_activity` (count of backends in the `active` state), useful for trend/shape comparison only. See `docs/architecture.md` for the full API boundary, current Database Insights terminology, and an optional, unimplemented collector design."
+        "content": "AWS publishes aggregate `DBLoad`, `DBLoadCPU`, `DBLoadNonCPU`, and `DBLoadRelativeToNumVCPUs` into ordinary `AWS/RDS` CloudWatch, and the optional panels at the end of this dashboard collect them through YACE. Those four metrics do **not** provide full wait-event or top-SQL dimensions. That detail still requires the separate Performance Insights compatibility API, an instance `DbiResourceId`, and `pi:*` permissions; there is no official AWS Prometheus exporter for it. The panel below is a local `pg_stat_activity` proxy for comparison. See `docs/architecture.md`."
       }
     },
+    {
+        "id": 78,
+        "type": "row",
+        "title": "AWS DB Load (ordinary CloudWatch via YACE, OPTIONAL)",
+        "collapsed": false,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 303
+        }
+      },
+      {
+        "id": 79,
+        "type": "timeseries",
+        "title": "AWS DB Load: total, CPU, and non-CPU",
+        "description": "OPTIONAL: AWS publishes these aggregate Database Insights load metrics into ordinary AWS/RDS CloudWatch when the instance has load; YACE can scrape them. They do not include wait-event or top-SQL dimensions.",
+        "datasource": {
+          "type": "datasource",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 16,
+          "x": 0,
+          "y": 304
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "min": 0
+          },
+          "overrides": []
+        },
+        "targets": [
+          {
+            "expr": "aws_rds_dbload_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+            "legendFormat": "{{instance}} total",
+            "refId": "A"
+          },
+          {
+            "expr": "aws_rds_dbload_cpu_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+            "legendFormat": "{{instance}} CPU",
+            "refId": "B"
+          },
+          {
+            "expr": "aws_rds_dbload_non_cpu_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+            "legendFormat": "{{instance}} non-CPU",
+            "refId": "C"
+          }
+        ],
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "bottom",
+            "calcs": ["mean", "max", "last"]
+          },
+          "tooltip": {
+            "mode": "multi",
+            "sort": "desc"
+          }
+        }
+      },
+      {
+        "id": 80,
+        "type": "timeseries",
+        "title": "AWS DB Load relative to vCPUs",
+        "description": "OPTIONAL: DBLoadRelativeToNumVCPUs from ordinary AWS/RDS CloudWatch via YACE. A value of 1 means aggregate DB load equals the instance vCPU count.",
+        "datasource": {
+          "type": "datasource",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 304
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "min": 0
+          },
+          "overrides": []
+        },
+        "targets": [
+          {
+            "expr": "aws_rds_dbload_relative_to_num_vcpus_average{cluster=~\"$cluster\", instance=~\"$instance\"}",
+            "legendFormat": "{{instance}}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "bottom",
+            "calcs": ["mean", "max", "last"]
+          },
+          "tooltip": {
+            "mode": "multi",
+            "sort": "desc"
+          }
+        }
+      },
     {
       "id": 15,
       "type": "row",

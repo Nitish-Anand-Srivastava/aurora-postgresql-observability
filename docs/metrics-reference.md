@@ -85,6 +85,9 @@ cluster/instance tags -- but they are ordinary metrics, not Database Insights da
 | --- | --- | --- | --- |
 | `aws_rds_cpuutilization_average` / `_maximum` | `CPUUtilization` | instance | |
 | `aws_rds_database_connections_average` | `DatabaseConnections` | instance | |
+| `aws_rds_dbload_average` | `DBLoad` | instance | Aggregate active sessions published by AWS into ordinary CloudWatch when the instance has load. |
+| `aws_rds_dbload_cpu_average` / `aws_rds_dbload_non_cpu_average` | `DBLoadCPU` / `DBLoadNonCPU` | instance | Aggregate CPU/non-CPU load only; no wait-event or SQL dimensions. |
+| `aws_rds_dbload_relative_to_num_vcpus_average` | `DBLoadRelativeToNumVCPUs` | instance | DB load divided by instance vCPU count. |
 | `aws_rds_freeable_memory_average` | `FreeableMemory` | instance | |
 | `aws_rds_swap_usage_average` | `SwapUsage` | instance | Not emitted for all instance classes. |
 | `aws_rds_cpucredit_balance_average` / `aws_rds_cpucredit_usage_average` | `CPUCreditBalance` / `CPUCreditUsage` | instance | Only for burstable (`db.t3`/`db.t4g`) classes. |
@@ -118,7 +121,7 @@ These are pre-aggregated PromQL, not raw exporter output -- see that file's comm
 underlying `expr` of each one. `scripts/checks/check_dashboard_json.py` validates that every
 `aurora:*` name referenced by a dashboard panel is actually defined there.
 
-## CloudWatch Database Insights: explicitly out of scope for YACE
+## Database Insights detail: explicitly out of scope for YACE
 
 AWS's Performance Insights feature reached end-of-life on **July 31, 2026**; existing Performance
 Insights users were migrated to **CloudWatch Database Insights**
@@ -132,16 +135,19 @@ and on-demand historical analysis). Both modes expose **DB load / Average Active
 and dimension breakdowns through the **Performance Insights API** (`GetResourceMetrics`,
 `DescribeDimensionKeys`, etc.) -- kept as a compatibility API surface under the `pi:*` IAM
 namespace, not renamed to match the "Database Insights" product name. This is a completely
-different API surface from the CloudWatch metrics API that YACE calls. **YACE cannot and does not
-scrape that data** (with one narrow exception: Database Insights Advanced mode's own automatic
-import of PI counter metrics into CloudWatch is an AWS-side feature unrelated to YACE, and this
-repo does not enumerate or depend on any of those account/mode-dependent metric names). Any panel
-in this repo's dashboard that approximates "load" (the "DB Load / Active Sessions" row) is built
-from `pg_stat_activity_count{state="active"}` via postgres_exporter, explicitly labeled as a
-proxy, and is not the same measurement AWS Database Insights shows in its console. See
-[`docs/architecture.md`](architecture.md#cloudwatch-api-boundary) for a design sketch of an
-optional, unimplemented API collector if you want to build real Database Insights data ingestion
-later.
+different API surface from the CloudWatch metrics API that YACE calls. YACE cannot scrape those
+dimensions. The dashboard shows both a local `pg_stat_activity` proxy and the four aggregate
+`DBLoad*` gauges AWS publishes into ordinary CloudWatch. Database Insights Advanced mode can
+publish additional account/mode-dependent counter metrics, but this repository does not enumerate
+or depend on them. See [`docs/architecture.md`](architecture.md#cloudwatch-api-boundary) for a
+design sketch of an optional, unimplemented API collector for detailed waits/top SQL.
+
+AWS also publishes the four aggregate `DBLoad*` metrics listed above into ordinary CloudWatch, so
+YACE can collect them without `pi:*`. That narrow publication does not expose full wait-event or
+top-SQL dimensions. Those still require the Aurora instance's immutable `DbiResourceId`,
+`pi:GetResourceMetrics`, `pi:DescribeDimensionKeys`, and `pi:GetDimensionKeyDetails`. There is no
+official AWS exporter for this PI API. Use a separately selected and security-reviewed collector;
+none is shipped or implied here.
 
 <!-- BEGIN_MACHINE_READABLE_METRIC_INVENTORY -->
 The following is parsed by `scripts/checks/check_dashboard_json.py`. Keep it in sync with the
@@ -201,6 +207,10 @@ pg_long_running_transactions_oldest_timestamp_seconds
 aws_rds_cpuutilization_average
 aws_rds_cpuutilization_maximum
 aws_rds_database_connections_average
+aws_rds_dbload_average
+aws_rds_dbload_cpu_average
+aws_rds_dbload_non_cpu_average
+aws_rds_dbload_relative_to_num_vcpus_average
 aws_rds_freeable_memory_average
 aws_rds_swap_usage_average
 aws_rds_cpucredit_balance_average

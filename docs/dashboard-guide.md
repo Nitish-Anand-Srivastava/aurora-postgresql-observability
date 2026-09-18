@@ -42,9 +42,10 @@ it's optional -- this file gives the *why*, the panel description gives the *wha
 - **Connections**: the connections-used-ratio gauge directly mirrors the
   `AuroraPostgresHighConnections{,Critical}` alert thresholds (80%/95%) via matching threshold
   colors.
-- **DB Load / Active Sessions**: read the text panel first -- the "active sessions" panel is an
-  approximation, not the CloudWatch Database Insights DB Load (Average Active Sessions) metric
-  exposed via the Performance Insights compatibility API. See
+- **DB Load / Active Sessions**: the local `pg_stat_activity` panel remains an approximation. The
+  optional **AWS DB Load** row uses the four aggregate `DBLoad*` metrics AWS publishes into
+  ordinary CloudWatch and YACE can scrape. Those aggregates still do not provide wait-event or
+  top-SQL dimensions; that detail requires the separate PI API described at
   `docs/architecture.md#cloudwatch-api-boundary`.
 - **CPU & Memory / Latency & Throughput / I/O / Storage**: mostly AWS CloudWatch (YACE) panels,
   since these are infrastructure-level signals AWS measures more directly than PostgreSQL can see

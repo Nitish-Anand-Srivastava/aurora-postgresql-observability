@@ -11,8 +11,26 @@ This repository ships **configuration and operational utilities**, not a long-ru
 Prometheus scrape/recording/alerting rules, a provisionable Grafana dashboard, systemd units,
 IAM/SQL least-privilege definitions, a non-production tuning simulator, and automated validation.
 See [`docs/architecture.md`](docs/architecture.md) for the full picture,
-including the important **CloudWatch API boundary** (this stack does not, and cannot, scrape
-CloudWatch Database Insights / Performance Insights data through YACE).
+including the important **CloudWatch API boundary** (YACE can scrape the four aggregate `DBLoad*`
+metrics AWS publishes to `AWS/RDS`, but not Database Insights waits or top-SQL dimensions).
+
+## How the data gets to Grafana
+
+There are two independent paths, and Prometheus joins them by consistent cluster/instance labels:
+
+```text
+Aurora PostgreSQL --SQL--> postgres_exporter --\
+                                                  Prometheus --> Grafana
+AWS/RDS CloudWatch API -------> YACE ------------/
+```
+
+`postgres_exporter` logs in to each Aurora endpoint with a read-only monitoring role and turns
+PostgreSQL internals such as connections, locks, vacuum, and table statistics into Prometheus
+metrics. YACE uses AWS credentials to read ordinary `AWS/RDS` CloudWatch metrics such as CPU,
+memory, IOPS, storage, and replica lag. Prometheus scrapes both HTTP endpoints and evaluates the
+included rules; Grafana queries only Prometheus. YACE reads the four aggregate `DBLoad*` metrics
+AWS publishes into ordinary CloudWatch, but it does **not** read detailed Database Insights /
+Performance Insights waits or top SQL.
 
 ## Pinned versions
 
@@ -48,12 +66,41 @@ docs/                     Architecture, setup, security, troubleshooting, metric
 ## Quick start
 
 - **Try it locally first** (no real AWS/Aurora needed): [`docker/README.md`](docker/README.md).
+- **Install on a Linux exporter host**: copy
+  [`examples/setup-config.json`](examples/setup-config.json), point every credential field at an
+  existing mode-`0600` file, then review a dry run:
+
+  ```bash
+  python3 scripts/setup_observability.py \
+    --config /secure/path/aurora-observability.json \
+    --non-interactive \
+    --dry-run
+  sudo python3 scripts/setup_observability.py \
+    --config /secure/path/aurora-observability.json \
+    --non-interactive \
+    --apply
+  ```
+
+  The installer defaults to dry-run, preserves unrelated Prometheus jobs/rules, validates the
+  candidate config before reload, and imports the datasource/dashboard through the Grafana API.
 - **Deploy against a real Aurora cluster**: [`docs/setup.md`](docs/setup.md).
 - **Understand the dashboard**: [`docs/dashboard-guide.md`](docs/dashboard-guide.md).
 - **Look up a metric**: [`docs/metrics-reference.md`](docs/metrics-reference.md).
 - **An alert fired**: [`docs/troubleshooting.md`](docs/troubleshooting.md).
 - **Security model**: [`docs/security.md`](docs/security.md) / [`SECURITY.md`](SECURITY.md).
 - **Generate non-production tuning load**: [`docs/tuning-workload.md`](docs/tuning-workload.md).
+
+## First troubleshooting checks
+
+1. `systemctl status 'postgres_exporter@*' yace prometheus` checks the processes.
+2. In Prometheus, query `up{job=~"postgres_exporter|yace"}`; `pg_up == 0` means
+   the exporter is reachable but its database login failed.
+3. If `aws_rds_*` series are absent, check `journalctl -u yace` for AWS credential, AssumeRole,
+   region, or discovery-tag errors. An on-premises host needs a base AWS credential provider
+   before it can assume the configured role.
+4. If Grafana is empty but Prometheus has data, select the **Aurora Prometheus** datasource and
+   verify the normalized `cluster` and `instance` labels. See
+   [`docs/troubleshooting.md`](docs/troubleshooting.md) for detailed runbooks and rollback.
 
 ## Validate your changes
 

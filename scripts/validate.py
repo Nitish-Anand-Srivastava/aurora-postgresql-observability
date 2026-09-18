@@ -34,6 +34,7 @@ CHECKS = {
     "postgres": "check_postgres",
     "simulator": "check_simulator",
     "secrets": "check_secrets",
+    "setup": "check_setup",
 }
 
 

@@ -20,13 +20,16 @@
            └───────────────┬──────────────────┘
                            ▼
                  ┌───────────────────┐
-                 │ Prometheus v3.14.0 │
-                 │ (scrape + rules)   │
+                 │ Prometheus          │
+                 │ (2.30 observed;     │
+                 │ sample pins 3.14.0) │
                  └─────────┬─────────┘
                            ▼
                  ┌───────────────────┐
-                 │ Grafana v13.2.1    │
-                 │ (provisioned       │
+                 │ Grafana             │
+                 │ (12.3.1 API tested; │
+                 │ sample pins 13.2.1) │
+                 │ (provisioned        │
                  │ datasource +       │
                  │ dashboard)         │
                  └───────────────────┘
@@ -78,31 +81,30 @@ Database Insights has two modes:
 | API | What it returns | Used by this repo? |
 | --- | --- | --- |
 | CloudWatch `GetMetricData` / `ListMetrics` (the "ordinary metrics" API, `AWS/RDS` namespace) | CPU, memory, IOPS, storage, AWS-side replica lag, etc. -- one data point per metric per period. | **Yes**, via YACE. See `exporters/yace/config.yml`. |
-| The Performance Insights API (`GetResourceMetrics`, `DescribeDimensionKeys`, `GetDimensionKeyDetails`, `ListAvailableResourceMetrics`, and the report-generation actions `CreatePerformanceAnalysisReport`/`GetPerformanceAnalysisReport`/`ListPerformanceAnalysisReports`/`DeletePerformanceAnalysisReport`) -- kept under the AWS `pi:*` IAM action namespace and CLI (`aws pi ...`) as a **compatibility API surface** underneath the Database Insights product/console experience; there is no separately-named "Database Insights API" with different action names as of this writing. | **DB load / Average Active Sessions (AAS)**, wait-event breakdowns, top-SQL, per-dimension analysis. A completely separate data model (a 2-D time series of *sessions* decomposed by dimension, not simple numeric gauges) requiring its own IAM actions and its own client calls. | **No.** YACE does not implement this API and this repository does not claim otherwise. |
+| The Performance Insights API (`GetResourceMetrics`, `DescribeDimensionKeys`, `GetDimensionKeyDetails`, `ListAvailableResourceMetrics`, and the report-generation actions `CreatePerformanceAnalysisReport`/`GetPerformanceAnalysisReport`/`ListPerformanceAnalysisReports`/`DeletePerformanceAnalysisReport`) -- kept under the AWS `pi:*` IAM action namespace and CLI (`aws pi ...`) as a **compatibility API surface** underneath the Database Insights product/console experience; there is no separately-named "Database Insights API" with different action names as of this writing. | DB load with wait-event/top-SQL/per-dimension analysis. This is separate from the four aggregate `DBLoad*` gauges AWS also publishes to ordinary CloudWatch. | **No.** YACE does not implement this API and this repository does not claim otherwise. |
 
-**Do not configure YACE to try to scrape Database Insights / Performance Insights data** -- it
-cannot: YACE's CloudWatch metrics stream (`cloudwatch:GetMetricData`) and the Performance Insights
-compatibility API (`pi:GetResourceMetrics`) are unrelated AWS APIs with unrelated IAM action
-namespaces, and no CloudWatch namespace re-exposes DB Load/AAS as an ordinary metric --
-**with one exception**: if you enable Database Insights **Advanced mode**, AWS *automatically
-imports Performance Insights counter metrics into CloudWatch* for you (see the mode comparison
-table above). Even then, this happens as a first-party AWS feature outside of and unrelated to
-YACE's scrape jobs; this repository does not attempt to enumerate those Advanced-mode-only,
-account/mode-dependent metric names, and none of them are required by, or referenced in, any
-config/dashboard/alert shipped here.
+**Do not configure YACE to try to scrape detailed Database Insights / Performance Insights
+dimensions.** YACE's CloudWatch metrics stream (`cloudwatch:GetMetricData`) and the Performance
+Insights compatibility API (`pi:GetResourceMetrics`) are unrelated APIs. AWS does publish the four
+aggregate `DBLoad*` gauges to ordinary `AWS/RDS`, and this repository includes them. Database
+Insights **Advanced mode** can also import additional PI counter metrics into CloudWatch as a
+first-party AWS feature; this repository does not enumerate those account/mode-dependent names.
 
 ### Optional: designing (not shipping) a Database Insights / Performance Insights collector
 
-If you want true DB load / AAS / top-SQL data in Prometheus and are not using (or don't want to
-rely solely on) Database Insights Advanced mode's automatic CloudWatch metric import, you need a
-**separate, dedicated collector** that calls the Performance Insights compatibility API directly.
+If you want wait-decomposed DB load, top-SQL, or other PI dimensions in Prometheus rather than only
+the four aggregate CloudWatch gauges, you need a **separate, dedicated collector** that calls the
+Performance Insights compatibility API directly.
 This repository intentionally does **not** ship one (to avoid shipping an unsupported,
 unmaintained, "fake" integration), but here is a safe design sketch if you choose to build it
 yourself:
 
-- **API calls**: `GetResourceMetrics` (DB load / AAS, and any counter metrics) on a schedule (data
+- **API calls**: `GetResourceMetrics` (dimensioned DB load/AAS and counter metrics) on a schedule (data
   granularity is ~1 minute for Standard mode, ~1 second for Advanced mode); optionally
   `DescribeDimensionKeys`/`GetDimensionKeyDetails` for top-SQL/wait-event breakdowns.
+- **Resource identifier**: every call needs the instance's immutable **`DbiResourceId`** (for
+  example `db-ABCDEFGHIJKLMNOPQRSTU1VW2X`), not its endpoint or `DBInstanceIdentifier`. Retrieve it
+  with `aws rds describe-db-instances`.
 - **IAM**: a distinct policy from `iam/yace-readonly-policy.json` -- `pi:GetResourceMetrics`,
   `pi:DescribeDimensionKeys`, `pi:GetDimensionKeyDetails`, `pi:ListAvailableResourceMetrics`,
   scoped by resource ARN (`arn:aws:pi:<region>:<account>:metrics/rds/<dbi-resource-id>`) where the
@@ -116,6 +118,12 @@ yourself:
 
 This design is documented for completeness only -- it is not implemented, wired into
 `docker-compose.yml`, or referenced by any dashboard panel in this repo.
+
+AWS publishes four aggregate load metrics -- `DBLoad`, `DBLoadCPU`, `DBLoadNonCPU`, and
+`DBLoadRelativeToNumVCPUs` -- into the ordinary `AWS/RDS` CloudWatch namespace when the instance
+has load. YACE and the dashboard include those four. They do **not** contain wait-event or top-SQL
+dimensions. Full waits and top-SQL still need the separate PI API collector described above,
+`DbiResourceId`, and `pi:*` permissions; there is no official AWS Prometheus exporter for that API.
 
 ## Data flow / trust boundaries
 

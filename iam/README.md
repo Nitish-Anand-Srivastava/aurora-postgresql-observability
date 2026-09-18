@@ -49,6 +49,11 @@ federation. **This repository never sets static AWS keys.** In the local Docker 
 configured to read `AWS_SHARED_CREDENTIALS_FILE` from a bind-mounted, gitignored file that does not exist
 by default — see `docker/README.md`.
 
+`roleArn` does not replace this chain: YACE first obtains **base credentials**, then calls STS to
+assume the target role. An on-premises host has no EC2 instance profile, so configure a protected
+shared credentials/profile, web identity, or another SDK-supported base provider before role
+assumption. Never put static keys in `exporters/yace/config.yml` or the setup JSON.
+
 ## Attaching the policy
 
 ```bash

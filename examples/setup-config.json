@@ -1,0 +1,53 @@
+{
+  "aurora_targets": [
+    {
+      "name": "orders-writer",
+      "endpoint": "orders.cluster-example.us-east-1.rds.invalid",
+      "port": 5432,
+      "database": "orders",
+      "db_role": "postgres_exporter",
+      "password_file": "/run/secrets/orders-exporter-password",
+      "cluster": "orders-aurora",
+      "instance": "orders-writer-1",
+      "role": "writer",
+      "exporter_port": 9187,
+      "sslrootcert": "/etc/ssl/certs/rds-global-bundle.pem"
+    },
+    {
+      "name": "orders-reader",
+      "endpoint": "orders-ro.cluster-example.us-east-1.rds.invalid",
+      "port": 5432,
+      "database": "orders",
+      "db_role": "postgres_exporter",
+      "password_file": "/run/secrets/orders-reader-exporter-password",
+      "cluster": "orders-aurora",
+      "instance": "orders-reader-1",
+      "role": "reader",
+      "exporter_port": 9188,
+      "sslrootcert": "/etc/ssl/certs/rds-global-bundle.pem"
+    }
+  ],
+  "exporter_advertise_host": "exporters.observability.invalid",
+  "prometheus": {
+    "url": "http://prometheus.observability.invalid:9090",
+    "config_path": "/etc/prometheus/prometheus.yml",
+    "service_name": "prometheus",
+    "promtool": "/usr/local/bin/promtool"
+  },
+  "grafana": {
+    "url": "https://grafana.observability.invalid",
+    "folder": "Aurora PostgreSQL",
+    "api_token_file": "/run/secrets/grafana-service-account-token"
+  },
+  "aws": {
+    "region": "us-east-1",
+    "base_credential_provider": "instance-role",
+    "assume_role_arn": null,
+    "profile": null,
+    "shared_credentials_file": null,
+    "search_tag_key": "aurora-observability",
+    "search_tag_value": "true"
+  },
+  "yace_advertise_host": "exporters.observability.invalid",
+  "yace_port": 5000
+}

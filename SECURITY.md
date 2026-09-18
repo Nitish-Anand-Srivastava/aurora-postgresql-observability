@@ -2,7 +2,7 @@
 
 ## Scope
 
-This repository contains **configuration only**: Prometheus/Grafana/exporter configuration, systemd
+This repository contains **configuration and operational utilities**: Prometheus/Grafana/exporter configuration, systemd
 units, SQL, IAM policy documents, dashboards, and validation tooling. It does not ship a running service
 or accept network input on its own. Security issues generally fall into one of these categories:
 

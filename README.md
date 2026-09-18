@@ -7,9 +7,10 @@ for engine metrics and [YACE](https://github.com/prometheus-community/yet-anothe
 [November 2024](https://prometheus.io/blog/2024/11/19/yace-joining-prometheus-community/)) for
 ordinary `AWS/RDS` CloudWatch metrics.
 
-This repository ships **configuration**, not new software: Prometheus scrape/recording/alerting
-rules, a provisionable Grafana dashboard, systemd units, IAM/SQL least-privilege definitions, and
-automated validation. See [`docs/architecture.md`](docs/architecture.md) for the full picture,
+This repository ships **configuration and operational utilities**, not a long-running service:
+Prometheus scrape/recording/alerting rules, a provisionable Grafana dashboard, systemd units,
+IAM/SQL least-privilege definitions, a non-production tuning simulator, and automated validation.
+See [`docs/architecture.md`](docs/architecture.md) for the full picture,
 including the important **CloudWatch API boundary** (this stack does not, and cannot, scrape
 CloudWatch Database Insights / Performance Insights data through YACE).
 
@@ -39,6 +40,7 @@ prometheus/               prometheus.yml, recording rules, alert rules, promtool
 grafana/                  Datasource + dashboard provisioning, the dashboard JSON itself
 docker/                   Local Docker Compose validation stack (safe by default, no live infra)
 scripts/                  Cross-platform Python validation (scripts/validate.py) + Makefile
+workload/                 Explicitly non-production Aurora tuning workload simulator
 docs/                     Architecture, setup, security, troubleshooting, metrics, dashboard guide
 .github/workflows/        CI running the same validation on every push/PR
 ```
@@ -51,6 +53,7 @@ docs/                     Architecture, setup, security, troubleshooting, metric
 - **Look up a metric**: [`docs/metrics-reference.md`](docs/metrics-reference.md).
 - **An alert fired**: [`docs/troubleshooting.md`](docs/troubleshooting.md).
 - **Security model**: [`docs/security.md`](docs/security.md) / [`SECURITY.md`](SECURITY.md).
+- **Generate non-production tuning load**: [`docs/tuning-workload.md`](docs/tuning-workload.md).
 
 ## Validate your changes
 
@@ -60,9 +63,9 @@ python scripts/validate.py       # or: make validate
 
 Runs YAML/JSON syntax checks, Grafana dashboard structural + metric-provenance checks, Prometheus
 config/rules/unit-test checks (via a pinned `promtool`, downloaded on demand into a gitignored
-`tools/` directory), database-role consistency checks, a shell-script linter, best-effort Markdown
-link checking, and a secret-pattern scan -- all without Docker, without live credentials, and
-without requiring PyYAML (though installing `scripts/requirements.txt` upgrades YAML validation
+`tools/` directory), database-role consistency and simulator unit tests, a shell-script linter,
+best-effort Markdown link checking, and a secret-pattern scan -- all without Docker, live
+credentials, or requiring PyYAML (though installing `scripts/requirements.txt` upgrades YAML validation
 from a fallback heuristic to full parsing). CI (`.github/workflows/ci.yml`) runs the identical
 entrypoint.
 

@@ -32,6 +32,7 @@ CHECKS = {
     "shell": "check_shell",
     "markdown": "check_markdown_links",
     "postgres": "check_postgres",
+    "simulator": "check_simulator",
     "secrets": "check_secrets",
 }
 

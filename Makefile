@@ -3,7 +3,7 @@
 PYTHON ?= python3
 
 .PHONY: validate validate-yaml validate-json validate-dashboard validate-prometheus \
-        validate-shell validate-markdown validate-secrets install-dev clean-tools
+        validate-shell validate-markdown validate-secrets validate-simulator install-dev clean-tools
 
 validate:
 	$(PYTHON) scripts/validate.py
@@ -28,6 +28,9 @@ validate-markdown:
 
 validate-secrets:
 	$(PYTHON) scripts/validate.py --only secrets
+
+validate-simulator:
+	$(PYTHON) scripts/validate.py --only simulator
 
 install-dev:
 	$(PYTHON) -m pip install -r scripts/requirements.txt

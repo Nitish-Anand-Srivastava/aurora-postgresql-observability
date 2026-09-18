@@ -29,7 +29,7 @@ tests:
               datname: app_db
             exp_annotations:
               summary: "Database app_db on aurora-writer.observability.invalid:9187 is accumulating transaction ID age"
-              runbook_url: "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresxidwraparoundwarning"
+              runbook_url: "https://github.com/Nitish-Anand-Srivastava/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresxidwraparoundwarning"
               description: >-
                 The oldest unfrozen transaction ID age for app_db is 1.8G, more than 1 billion
                 transactions old (of a 2.146 billion hard limit). Confirm autovacuum is running

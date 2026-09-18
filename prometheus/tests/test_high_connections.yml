@@ -36,7 +36,7 @@ tests:
               instance: aurora-writer.observability.invalid:9187
             exp_annotations:
               summary: "aurora-writer.observability.invalid:9187 is using 85% of max_connections"
-              runbook_url: "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgreshighconnections"
+              runbook_url: "https://github.com/Nitish-Anand-Srivastava/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgreshighconnections"
               description: >-
                 Connection count has exceeded 80% of pg_settings_max_connections for 10 minutes on
                 aurora-writer.observability.invalid:9187. New connections risk being rejected with

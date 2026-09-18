@@ -54,7 +54,7 @@
       "title": "Dashboard interpretation guide",
       "tooltip": "docs/dashboard-guide.md",
       "type": "link",
-      "url": "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/dashboard-guide.md"
+      "url": "https://github.com/Nitish-Anand-Srivastava/aurora-postgresql-observability/blob/main/docs/dashboard-guide.md"
     },
     {
       "asDropdown": false,
@@ -66,7 +66,7 @@
       "title": "Metrics reference",
       "tooltip": "docs/metrics-reference.md",
       "type": "link",
-      "url": "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/metrics-reference.md"
+      "url": "https://github.com/Nitish-Anand-Srivastava/aurora-postgresql-observability/blob/main/docs/metrics-reference.md"
     },
     {
       "asDropdown": false,
@@ -78,7 +78,7 @@
       "title": "Troubleshooting / runbooks",
       "tooltip": "docs/troubleshooting.md",
       "type": "link",
-      "url": "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md"
+      "url": "https://github.com/Nitish-Anand-Srivastava/aurora-postgresql-observability/blob/main/docs/troubleshooting.md"
     }
   ],
   "liveNow": false,
@@ -160,7 +160,7 @@
       "links": [
         {
           "title": "Runbook",
-          "url": "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresinstancedown"
+          "url": "https://github.com/Nitish-Anand-Srivastava/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresinstancedown"
         }
       ]
     },
@@ -229,7 +229,7 @@
       "links": [
         {
           "title": "Runbook",
-          "url": "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#postgresexporterscrapefailed"
+          "url": "https://github.com/Nitish-Anand-Srivastava/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#postgresexporterscrapefailed"
         }
       ]
     },
@@ -298,7 +298,7 @@
       "links": [
         {
           "title": "Runbook",
-          "url": "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#yaceexporterscrapefailed"
+          "url": "https://github.com/Nitish-Anand-Srivastava/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#yaceexporterscrapefailed"
         }
       ]
     },
@@ -500,7 +500,7 @@
       "links": [
         {
           "title": "Runbook",
-          "url": "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgreshighconnections"
+          "url": "https://github.com/Nitish-Anand-Srivastava/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgreshighconnections"
         }
       ]
     },
@@ -1706,7 +1706,7 @@
       "links": [
         {
           "title": "Runbook",
-          "url": "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#locks-and-waits"
+          "url": "https://github.com/Nitish-Anand-Srivastava/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#locks-and-waits"
         }
       ]
     },
@@ -2083,7 +2083,7 @@
       "links": [
         {
           "title": "Runbook",
-          "url": "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresdeadlockselevated"
+          "url": "https://github.com/Nitish-Anand-Srivastava/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresdeadlockselevated"
         }
       ]
     },
@@ -2345,7 +2345,7 @@
       "links": [
         {
           "title": "Runbook",
-          "url": "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresxidwraparoundcritical"
+          "url": "https://github.com/Nitish-Anand-Srivastava/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresxidwraparoundcritical"
         }
       ]
     },
@@ -3217,7 +3217,7 @@
       "links": [
         {
           "title": "Runbook",
-          "url": "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresreplicalagcritical"
+          "url": "https://github.com/Nitish-Anand-Srivastava/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresreplicalagcritical"
         }
       ]
     },
@@ -3595,7 +3595,7 @@
       "links": [
         {
           "title": "Runbook",
-          "url": "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#postgresexportercollectorfailing"
+          "url": "https://github.com/Nitish-Anand-Srivastava/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#postgresexportercollectorfailing"
         }
       ]
     },

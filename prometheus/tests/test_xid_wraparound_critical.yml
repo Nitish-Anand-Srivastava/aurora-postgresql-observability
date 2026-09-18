@@ -28,7 +28,7 @@ tests:
               datname: app_db
             exp_annotations:
               summary: "Database app_db on aurora-writer.observability.invalid:9187 is approaching transaction ID wraparound"
-              runbook_url: "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresxidwraparoundcritical"
+              runbook_url: "https://github.com/Nitish-Anand-Srivastava/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresxidwraparoundcritical"
               description: >-
                 The oldest unfrozen transaction ID age for app_db is 1.8G, approaching the
                 2,146,483,648 hard limit at which PostgreSQL/Aurora forces the database into

@@ -29,7 +29,7 @@ tests:
               instance: aurora-reader1.observability.invalid:9187
             exp_annotations:
               summary: "Replica aurora-reader1.observability.invalid:9187 is 150s behind the writer"
-              runbook_url: "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresreplicalaghigh"
+              runbook_url: "https://github.com/Nitish-Anand-Srivastava/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresreplicalaghigh"
               description: >-
                 pg_replication_lag_seconds has exceeded 30 seconds for 5 minutes on
                 aurora-reader1.observability.invalid:9187. Read traffic served by this reader may

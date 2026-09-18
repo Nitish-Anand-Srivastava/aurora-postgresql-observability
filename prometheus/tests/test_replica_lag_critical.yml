@@ -27,7 +27,7 @@ tests:
               instance: aurora-reader1.observability.invalid:9187
             exp_annotations:
               summary: "Replica aurora-reader1.observability.invalid:9187 is critically behind the writer (150s)"
-              runbook_url: "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresreplicalagcritical"
+              runbook_url: "https://github.com/Nitish-Anand-Srivastava/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresreplicalagcritical"
               description: >-
                 pg_replication_lag_seconds has exceeded 120 seconds for 5 minutes on
                 aurora-reader1.observability.invalid:9187. Investigate long-running queries/locks

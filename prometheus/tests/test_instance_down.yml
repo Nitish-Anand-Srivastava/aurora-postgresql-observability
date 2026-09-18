@@ -34,7 +34,7 @@ tests:
               instance: aurora-writer.observability.invalid:9187
             exp_annotations:
               summary: "Aurora PostgreSQL instance aurora-writer.observability.invalid:9187 is unreachable"
-              runbook_url: "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresinstancedown"
+              runbook_url: "https://github.com/Nitish-Anand-Srivastava/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#aurorapostgresinstancedown"
               description: >-
                 postgres_exporter has been unable to connect to (or successfully ping) the
                 PostgreSQL instance on aurora-writer.observability.invalid:9187 for 2 minutes.

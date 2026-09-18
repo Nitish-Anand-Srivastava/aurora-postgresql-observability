@@ -28,7 +28,7 @@ tests:
               instance: aurora-writer.observability.invalid:9187
             exp_annotations:
               summary: "Prometheus cannot scrape postgres_exporter on aurora-writer.observability.invalid:9187"
-              runbook_url: "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#postgresexporterscrapefailed"
+              runbook_url: "https://github.com/Nitish-Anand-Srivastava/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#postgresexporterscrapefailed"
               description: >-
                 The postgres_exporter target aurora-writer.observability.invalid:9187 has failed
                 its last scrape attempts for 2 minutes. This means the exporter process itself
@@ -47,7 +47,7 @@ tests:
               instance: yace.observability.invalid:5000
             exp_annotations:
               summary: "Prometheus cannot scrape YACE on yace.observability.invalid:5000"
-              runbook_url: "https://github.com/nitish-a-srivastava_ion/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#yaceexporterscrapefailed"
+              runbook_url: "https://github.com/Nitish-Anand-Srivastava/aurora-postgresql-observability/blob/main/docs/troubleshooting.md#yaceexporterscrapefailed"
               description: >-
                 The yet-another-cloudwatch-exporter target has failed its last scrape attempts
                 for 5 minutes. AWS/RDS CloudWatch-derived panels (storage volume, replica lag

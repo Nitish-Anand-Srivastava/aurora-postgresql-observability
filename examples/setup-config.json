@@ -49,5 +49,6 @@
     "search_tag_value": "true"
   },
   "yace_advertise_host": "exporters.observability.invalid",
-  "yace_port": 5000
+  "yace_port": 5000,
+  "aws_metrics_timeout_seconds": 360
 }

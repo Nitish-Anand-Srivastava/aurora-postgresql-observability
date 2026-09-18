@@ -82,13 +82,16 @@ docs/                     Architecture, setup, security, troubleshooting, metric
   ```
 
   The installer defaults to dry-run, preserves unrelated Prometheus jobs/rules, validates the
-  candidate config before reload, and imports the datasource/dashboard through the Grafana API.
+  candidate config before reload (including original owner/group/mode), binds the concrete
+  datasource UID during Grafana import, and waits for a real `aws_rds_*` sample from YACE.
 - **Deploy against a real Aurora cluster**: [`docs/setup.md`](docs/setup.md).
 - **Understand the dashboard**: [`docs/dashboard-guide.md`](docs/dashboard-guide.md).
 - **Look up a metric**: [`docs/metrics-reference.md`](docs/metrics-reference.md).
 - **An alert fired**: [`docs/troubleshooting.md`](docs/troubleshooting.md).
 - **Security model**: [`docs/security.md`](docs/security.md) / [`SECURITY.md`](SECURITY.md).
 - **Generate non-production tuning load**: [`docs/tuning-workload.md`](docs/tuning-workload.md).
+  Requested growth is capped at 98 GiB, workload stops at a 99 GiB guard, and 100 GiB is the
+  physical hard ceiling.
 
 ## First troubleshooting checks
 

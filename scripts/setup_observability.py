@@ -10,6 +10,7 @@ import os
 import platform
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tarfile
@@ -246,8 +247,12 @@ def validate_config(config: Dict[str, Any], check_files: bool = True) -> Dict[st
         if check_files and not Path(credentials).is_file():
             raise SetupError("AWS shared credentials file does not exist")
     if provider == "web-identity":
-        require(aws, "web_identity_token_file", "aws")
-        require(aws, "web_identity_role_arn", "aws")
+        token_path = safe_scalar(require(aws, "web_identity_token_file", "aws"), "aws.web_identity_token_file")
+        web_role = require(aws, "web_identity_role_arn", "aws")
+        if not AWS_ROLE.fullmatch(web_role):
+            raise SetupError("aws.web_identity_role_arn must be an IAM role ARN")
+        if check_files and not Path(token_path).is_file():
+            raise SetupError("AWS web identity token file does not exist")
     assume = aws.get("assume_role_arn")
     if assume and not AWS_ROLE.fullmatch(assume):
         raise SetupError("aws.assume_role_arn must be an IAM role ARN")
@@ -255,6 +260,8 @@ def validate_config(config: Dict[str, Any], check_files: bool = True) -> Dict[st
     require(aws, "search_tag_value", "aws")
     if not 1024 <= int(config.get("yace_port", 5000)) <= 65535:
         raise SetupError("yace_port must be between 1024 and 65535")
+    if not 30 <= int(config.get("aws_metrics_timeout_seconds", 360)) <= 900:
+        raise SetupError("aws_metrics_timeout_seconds must be between 30 and 900")
     return config
 
 
@@ -698,6 +705,20 @@ def grafana_request(
         )) from exc
 
 
+def bind_dashboard_datasource(value: Any, datasource_uid: str) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: bind_dashboard_datasource(item, datasource_uid)
+            for key, item in value.items()
+            if key != "__inputs"
+        }
+    if isinstance(value, list):
+        return [bind_dashboard_datasource(item, datasource_uid) for item in value]
+    if isinstance(value, str):
+        return value.replace("${DS_PROMETHEUS}", datasource_uid)
+    return value
+
+
 def provision_grafana(config: Dict[str, Any], runner: Runner) -> None:
     runner.note("provision Grafana datasource, folder, and dashboard via API")
     if not runner.apply:
@@ -711,12 +732,20 @@ def provision_grafana(config: Dict[str, Any], runner: Runner) -> None:
         "isDefault": False,
         "jsonData": {"httpMethod": "POST", "timeInterval": "30s"},
     }
-    status, _ = grafana_request(config, "GET", "/api/datasources/uid/aurora-prometheus")
-    grafana_request(
+    status, existing_datasource = grafana_request(
+        config, "GET", "/api/datasources/uid/aurora-prometheus"
+    )
+    _, saved_datasource = grafana_request(
         config,
         "PUT" if status == 200 else "POST",
         "/api/datasources/uid/aurora-prometheus" if status == 200 else "/api/datasources",
         datasource,
+    )
+    datasource_uid = (
+        saved_datasource.get("datasource", {}).get("uid")
+        or saved_datasource.get("uid")
+        or existing_datasource.get("uid")
+        or datasource["uid"]
     )
     folder_uid = "aurora-postgresql"
     status, _ = grafana_request(config, "GET", "/api/folders/{}".format(folder_uid))
@@ -732,6 +761,7 @@ def provision_grafana(config: Dict[str, Any], runner: Runner) -> None:
             encoding="utf-8"
         )
     )
+    dashboard = bind_dashboard_datasource(dashboard, datasource_uid)
     dashboard["id"] = None
     grafana_request(
         config,
@@ -741,11 +771,18 @@ def provision_grafana(config: Dict[str, Any], runner: Runner) -> None:
     )
 
 
+def has_metric_sample(body: str, prefix: str) -> bool:
+    return any(
+        line.startswith(prefix) and not line.startswith("#")
+        for line in body.splitlines()
+    )
+
+
 def verify_runtime(config: Dict[str, Any], runner: Runner) -> None:
     if not runner.apply:
         return
     checks = [
-        ("YACE", "http://127.0.0.1:{}/metrics".format(int(config["yace_port"])), None),
+        ("YACE", "http://127.0.0.1:{}/metrics".format(int(config["yace_port"])), "aws_rds_"),
         ("Prometheus", config["prometheus"]["url"].rstrip("/") + "/-/ready", None),
     ]
     for target in config["aurora_targets"]:
@@ -758,20 +795,143 @@ def verify_runtime(config: Dict[str, Any], runner: Runner) -> None:
         )
     for name, url, required_text in checks:
         last_error: Optional[Exception] = None
-        for _attempt in range(10):
+        timeout = (
+            int(config.get("aws_metrics_timeout_seconds", 360))
+            if name == "YACE"
+            else 10
+        )
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
             try:
                 with urllib.request.urlopen(url, timeout=5) as response:
                     body = response.read().decode("utf-8")
                     if response.status < 300 and (
-                        required_text is None or required_text in body
+                        required_text is None
+                        or (
+                            has_metric_sample(body, required_text)
+                            if required_text == "aws_rds_"
+                            else required_text in body
+                        )
                     ):
                         runner.note("{} runtime check passed".format(name))
                         break
             except (urllib.error.URLError, TimeoutError) as exc:
                 last_error = exc
-            time.sleep(1)
+            time.sleep(5 if name == "YACE" else 1)
         else:
             raise SetupError("{} runtime verification failed: {}".format(name, last_error or url))
+
+
+def aws_base_environment(aws: Dict[str, Any]) -> Dict[str, str]:
+    environment = os.environ.copy()
+    for key in (
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_SESSION_TOKEN",
+        "AWS_PROFILE",
+        "AWS_SHARED_CREDENTIALS_FILE",
+        "AWS_WEB_IDENTITY_TOKEN_FILE",
+        "AWS_ROLE_ARN",
+        "AWS_CONFIG_FILE",
+    ):
+        environment.pop(key, None)
+    provider = aws["base_credential_provider"]
+    if provider == "shared-credentials-file":
+        environment["AWS_SHARED_CREDENTIALS_FILE"] = aws["shared_credentials_file"]
+        environment["AWS_PROFILE"] = aws.get("profile") or "default"
+        environment["AWS_CONFIG_FILE"] = os.devnull
+    elif provider == "web-identity":
+        environment["AWS_WEB_IDENTITY_TOKEN_FILE"] = aws["web_identity_token_file"]
+        environment["AWS_ROLE_ARN"] = aws["web_identity_role_arn"]
+        environment["AWS_SHARED_CREDENTIALS_FILE"] = os.devnull
+        environment["AWS_CONFIG_FILE"] = os.devnull
+    else:
+        environment["AWS_SHARED_CREDENTIALS_FILE"] = os.devnull
+        environment["AWS_CONFIG_FILE"] = os.devnull
+        environment.pop("AWS_EC2_METADATA_DISABLED", None)
+    return environment
+
+
+def verify_aws_credentials(config: Dict[str, Any], aws_cli: str) -> None:
+    aws = config["aws"]
+    environment = aws_base_environment(aws)
+    identity_command = [
+        aws_cli,
+        "sts",
+        "get-caller-identity",
+        "--region",
+        aws["region"],
+        "--output",
+        "json",
+    ]
+    identity = subprocess.run(
+        identity_command,
+        env=environment,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if identity.returncode != 0:
+        raise SetupError(
+            "AWS base credentials are unavailable; on-premises hosts need a base provider "
+            "before YACE can assume another role"
+        )
+    assume_role_arn = aws.get("assume_role_arn")
+    if not assume_role_arn:
+        return
+    assumed = subprocess.run(
+        [
+            aws_cli,
+            "sts",
+            "assume-role",
+            "--role-arn",
+            assume_role_arn,
+            "--role-session-name",
+            "aurora-observability-preflight",
+            "--duration-seconds",
+            "900",
+            "--query",
+            "Credentials",
+            "--output",
+            "json",
+            "--region",
+            aws["region"],
+        ],
+        env=environment,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if assumed.returncode != 0:
+        raise SetupError("AWS AssumeRole preflight failed for the configured role")
+    try:
+        credentials = json.loads(assumed.stdout)
+        assumed_environment = environment.copy()
+        assumed_environment.update(
+            {
+                "AWS_ACCESS_KEY_ID": credentials["AccessKeyId"],
+                "AWS_SECRET_ACCESS_KEY": credentials["SecretAccessKey"],
+                "AWS_SESSION_TOKEN": credentials["SessionToken"],
+            }
+        )
+        for key in (
+            "AWS_PROFILE",
+            "AWS_SHARED_CREDENTIALS_FILE",
+            "AWS_WEB_IDENTITY_TOKEN_FILE",
+            "AWS_ROLE_ARN",
+        ):
+            assumed_environment.pop(key, None)
+    except (KeyError, TypeError, json.JSONDecodeError) as exc:
+        raise SetupError("AWS AssumeRole returned malformed temporary credentials") from exc
+    assumed_identity = subprocess.run(
+        identity_command,
+        env=assumed_environment,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if assumed_identity.returncode != 0:
+        raise SetupError("temporary credentials from AWS AssumeRole are unusable")
 
 
 def preflight(config: Dict[str, Any], apply: bool) -> None:
@@ -849,26 +1009,28 @@ def preflight(config: Dict[str, Any], apply: bool) -> None:
                     raise SetupError("{} readiness returned HTTP {}".format(name, response.status))
         except urllib.error.URLError as exc:
             raise SetupError("{} readiness check failed: {}".format(name, exc.reason)) from exc
-    if shutil.which("aws"):
-        env = os.environ.copy()
-        aws = config["aws"]
-        if aws["base_credential_provider"] == "shared-credentials-file":
-            env["AWS_SHARED_CREDENTIALS_FILE"] = aws["shared_credentials_file"]
-            env["AWS_PROFILE"] = aws.get("profile") or "default"
-        identity = subprocess.run(
-            ["aws", "sts", "get-caller-identity", "--region", aws["region"]],
-            env=env,
-            text=True,
-            capture_output=True,
-            check=False,
-        )
-        if identity.returncode != 0:
-            raise SetupError(
-                "AWS base credentials are unavailable; on-premises hosts need a base provider "
-                "before YACE can assume another role"
-            )
-    elif config["aws"]["assume_role_arn"]:
-        print("WARNING: aws CLI not installed; cannot preflight base credentials for AssumeRole.")
+    aws_cli = shutil.which("aws")
+    if not aws_cli:
+        raise SetupError("aws CLI is required to verify the selected base credential provider")
+    verify_aws_credentials(config, aws_cli)
+
+
+def desired_file_metadata(source: Optional[Path]) -> Tuple[int, int, int]:
+    if source is not None and source.exists():
+        metadata = source.stat()
+        return metadata.st_uid, metadata.st_gid, stat.S_IMODE(metadata.st_mode)
+    return (
+        os.geteuid() if hasattr(os, "geteuid") else 0,
+        os.getegid() if hasattr(os, "getegid") else 0,
+        0o640,
+    )
+
+
+def preserve_file_metadata(source: Optional[Path], destination: Path) -> None:
+    uid, gid, mode = desired_file_metadata(source)
+    if hasattr(os, "chown"):
+        os.chown(destination, uid, gid)
+    os.chmod(destination, mode)
 
 
 def update_prometheus(config: Dict[str, Any], runner: Runner) -> None:
@@ -889,6 +1051,7 @@ def update_prometheus(config: Dict[str, Any], runner: Runner) -> None:
         handle.write(candidate)
         candidate_path = Path(handle.name)
     try:
+        preserve_file_metadata(path if path.exists() else None, candidate_path)
         result = subprocess.run(
             [config["prometheus"]["promtool"], "check", "config", str(candidate_path)],
             text=True,

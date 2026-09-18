@@ -16,6 +16,7 @@ PostgreSQL cluster. For a throwaway local demo instead, see [`docker/README.md`]
 - A Linux host (or hosts) to run the exporters, with systemd, network access to the Aurora cluster
   and to `monitoring.<region>.amazonaws.com` / `tagging.<region>.amazonaws.com`.
 - An AWS IAM principal (instance role, IRSA, or assumable role) for YACE.
+- The AWS CLI for credential-provider and optional AssumeRole preflight checks.
 
 The automated path supports existing Prometheus releases as old as the observed **2.30** deployment
 provided `promtool check config` accepts the merged candidate. It does not replace or upgrade
@@ -65,8 +66,8 @@ never secret values. The default without `--apply` is dry-run.
 
 The preflight checks the existing Prometheus config with its own `promtool`, tests each Aurora
 login using an automatically deleted mode-`0600` temporary `PGPASSFILE` derived from the
-password-only input, checks Prometheus/Grafana readiness, and uses
-`aws sts get-caller-identity` when the AWS CLI is installed. Apply mode:
+password-only input, checks Prometheus/Grafana readiness, and uses the AWS CLI to exercise the
+selected base provider plus the configured AssumeRole hop. Apply mode:
 
 - creates locked-down `postgres_exporter` and `yace` system users/directories;
 - downloads only the pinned Linux archive for the host architecture and verifies an embedded
@@ -80,7 +81,11 @@ password-only input, checks Prometheus/Grafana readiness, and uses
   scrape/rule/remote-write setting, validates a temporary candidate, creates the first backup,
   atomically replaces the config, then reloads the configured service; and
 - idempotently creates/updates the **Aurora Prometheus** datasource, folder, and dashboard using
-  Grafana's API.
+  Grafana's API, replacing exported `${DS_PROMETHEUS}` tokens with the created datasource UID.
+
+After startup, the wizard waits for a real `aws_rds_*` sample, not just an HTTP 200 from YACE.
+CloudWatch discovery can take several minutes; `aws_metrics_timeout_seconds` defaults to 360 and
+accepts 30-900 seconds. A timeout fails setup visibly but leaves services running for inspection.
 
 ### Automated setup rollback
 

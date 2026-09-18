@@ -1,20 +1,29 @@
 from __future__ import annotations
 
 import json
+import stat
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from scripts.setup_observability import (
     ARCHIVES,
     MANAGED_START,
+    Runner,
     SetupError,
+    aws_base_environment,
+    bind_dashboard_datasource,
+    desired_file_metadata,
+    has_metric_sample,
     merge_prometheus_config,
     merge_rule_files,
     normalize,
     pgpass_line,
     render_yace_config,
+    update_prometheus,
     validate_config,
+    verify_aws_credentials,
 )
 
 
@@ -150,6 +159,98 @@ scrape_configs: []
         self.assertTrue(pgpass_line(target, r"p:a\\ss").endswith(r"p\:a\\\\ss" + "\n"))
         with self.assertRaisesRegex(SetupError, "one line"):
             pgpass_line(target, "first\nsecond")
+
+    def test_prometheus_candidate_preserves_source_mode(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "prometheus.yml"
+            source.write_text("scrape_configs: []\n", encoding="utf-8")
+            source.chmod(0o640)
+            uid, gid, mode = desired_file_metadata(source)
+            metadata = source.stat()
+            self.assertEqual((uid, gid), (metadata.st_uid, metadata.st_gid))
+            self.assertEqual(mode, stat.S_IMODE(metadata.st_mode))
+            self.assertEqual(desired_file_metadata(None)[2], 0o640)
+
+    @mock.patch("scripts.setup_observability.subprocess.run")
+    def test_prometheus_atomic_replace_keeps_existing_mode(self, run_mock):
+        run_mock.return_value = mock.Mock(returncode=0, stdout="", stderr="")
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "prometheus.yml"
+            path.write_text("rule_files: []\nscrape_configs: []\n", encoding="utf-8")
+            path.chmod(0o640)
+            before = stat.S_IMODE(path.stat().st_mode)
+            value = config()
+            value["prometheus"]["config_path"] = str(path)
+            value["prometheus"]["promtool"] = "promtool"
+            runner = Runner(apply=True)
+            with mock.patch.object(runner, "command"):
+                update_prometheus(value, runner)
+            self.assertEqual(stat.S_IMODE(path.stat().st_mode), before)
+
+    def test_dashboard_import_has_concrete_datasource_and_no_inputs(self):
+        dashboard = json.loads(
+            Path("grafana/dashboards/aurora-postgresql-overview.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        rendered = bind_dashboard_datasource(dashboard, "aurora-prometheus")
+        serialized = json.dumps(rendered)
+        self.assertNotIn("${DS_PROMETHEUS}", serialized)
+        self.assertNotIn('"__inputs"', serialized)
+        self.assertIn('"uid": "aurora-prometheus"', serialized)
+
+    def test_web_identity_environment_does_not_fall_back_to_ambient_keys(self):
+        aws = config()["aws"]
+        aws.update(
+            {
+                "base_credential_provider": "web-identity",
+                "web_identity_token_file": "/run/secrets/web-token",
+                "web_identity_role_arn": "arn:aws:iam::123456789012:role/base",
+            }
+        )
+        with mock.patch.dict(
+            "os.environ",
+            {"AWS_ACCESS_KEY_ID": "ambient", "AWS_SECRET_ACCESS_KEY": "ambient"},
+            clear=True,
+        ):
+            environment = aws_base_environment(aws)
+        self.assertNotIn("AWS_ACCESS_KEY_ID", environment)
+        self.assertEqual(environment["AWS_WEB_IDENTITY_TOKEN_FILE"], "/run/secrets/web-token")
+
+    @mock.patch("scripts.setup_observability.subprocess.run")
+    def test_assume_role_is_exercised_with_memory_only_credentials(self, run_mock):
+        value = config()
+        value["aws"]["assume_role_arn"] = "arn:aws:iam::123456789012:role/target"
+        run_mock.side_effect = [
+            mock.Mock(returncode=0, stdout="{}", stderr=""),
+            mock.Mock(
+                returncode=0,
+                stdout=json.dumps(
+                    {
+                        "AccessKeyId": "temporary-id",
+                        "SecretAccessKey": "temporary-secret",
+                        "SessionToken": "temporary-token",
+                    }
+                ),
+                stderr="",
+            ),
+            mock.Mock(returncode=0, stdout="{}", stderr=""),
+        ]
+        verify_aws_credentials(value, "aws")
+        self.assertEqual(run_mock.call_count, 3)
+        self.assertIn("assume-role", run_mock.call_args_list[1].args[0])
+        final_environment = run_mock.call_args_list[2].kwargs["env"]
+        self.assertEqual(final_environment["AWS_ACCESS_KEY_ID"], "temporary-id")
+        all_arguments = " ".join(
+            argument
+            for call in run_mock.call_args_list
+            for argument in call.args[0]
+        )
+        self.assertNotIn("temporary-secret", all_arguments)
+
+    def test_yace_runtime_requires_a_real_metric_sample(self):
+        self.assertFalse(has_metric_sample("# HELP aws_rds_cpu metric\n", "aws_rds_"))
+        self.assertTrue(has_metric_sample("aws_rds_cpuutilization_average 12\n", "aws_rds_"))
 
 
 if __name__ == "__main__":

@@ -188,3 +188,6 @@ General guidance for the "Locks & Waits" dashboard row (not tied to a specific a
 - If a Prometheus reload fails after a later manual change, restore
   `<prometheus.yml>.aurora-setup.bak`, run `promtool check config`, and reload the configured
   service. The wizard never deletes that first backup.
+- The final YACE check waits `aws_metrics_timeout_seconds` for an actual `aws_rds_*` sample.
+  If it times out, inspect YACE discovery tags, region, base credentials, and AssumeRole before
+  increasing the timeout (maximum 900 seconds).

@@ -10,12 +10,18 @@ from unittest import mock
 
 from workload.aurora_tuning_simulator import (
     GIB,
+    HARD_CEILING_GIB,
+    MAX_SAFE_GROW_BATCH,
+    MAX_TARGET_GIB,
+    WORKLOAD_STOP_BYTES,
     Config,
     Psql,
     SimulatorError,
     grow_batch,
+    insert_work_allowed,
     parse_args,
     preflight,
+    safe_growth_batch_size,
 )
 
 
@@ -66,7 +72,7 @@ class ArgumentSafetyTests(unittest.TestCase):
 
     def test_enforces_hard_size_ceiling(self):
         with self.assertRaises(SystemExit):
-            parse_args(base_args(self.pgpass) + ["--target-gib", "100.01"])
+            parse_args(base_args(self.pgpass) + ["--target-gib", str(MAX_TARGET_GIB + 0.01)])
 
     def test_rejects_invalid_port(self):
         with self.assertRaises(SystemExit):
@@ -142,10 +148,35 @@ class PreflightTests(unittest.TestCase):
     def test_growth_sql_has_valid_modulo_operators(self):
         client = mock.Mock()
         client.config = self.config()
+        client.run.side_effect = [str(100 * 1024 * 1024), ""]
         grow_batch(client)
         sql = client.run.call_args.args[0]
         self.assertIn("g % 2000", sql)
         self.assertNotIn("%%", sql)
+
+    def test_growth_batch_is_clamped_and_stops_at_guard(self):
+        config = self.config()
+        self.assertEqual(
+            safe_growth_batch_size(config, 0),
+            min(config.batch_size, MAX_SAFE_GROW_BATCH),
+        )
+        self.assertEqual(safe_growth_batch_size(config, WORKLOAD_STOP_BYTES), 0)
+
+    def test_grow_batch_rechecks_size_before_insert(self):
+        client = mock.Mock()
+        client.config = self.config()
+        client.run.return_value = str(WORKLOAD_STOP_BYTES)
+        self.assertFalse(grow_batch(client))
+        self.assertEqual(client.run.call_count, 1)
+
+    def test_target_has_margin_below_physical_ceiling(self):
+        self.assertLess(MAX_TARGET_GIB, HARD_CEILING_GIB)
+        self.assertLess(MAX_TARGET_GIB * GIB, WORKLOAD_STOP_BYTES)
+
+    def test_insert_workers_stop_at_guard(self):
+        client = mock.Mock()
+        client.run.return_value = str(WORKLOAD_STOP_BYTES)
+        self.assertFalse(insert_work_allowed(client))
 
 
 if __name__ == "__main__":

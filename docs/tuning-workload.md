@@ -14,8 +14,11 @@ It does not discover or choose a target for you, and it never cleans up automati
 - Row-lock contention with a 750 ms lock timeout. A lock holder is enabled with two or more workers.
 - Tagged query families whose normalized `queryid` values are verified in `pg_stat_statements`.
 
-All statements have a configurable statement timeout. The simulator has an immutable 100 GiB hard
-ceiling, supports at most 32 workers, and limits post-growth churn to one hour.
+All statements have a configurable statement timeout. The requested target is capped at 98 GiB,
+with all workload activity stopped at a 99 GiB guard and an immutable 100 GiB physical hard
+ceiling. The gap protects against concurrent batches, index growth, and update churn. Growth
+batches are conservatively clamped even when a larger `--batch-size` is requested. The simulator
+supports at most 32 workers and limits post-growth churn to one hour.
 
 ## Prerequisites
 

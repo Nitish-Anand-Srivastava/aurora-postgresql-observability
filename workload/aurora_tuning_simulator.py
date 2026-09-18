@@ -20,7 +20,11 @@ SCHEMA = "aurora_tuning_simulator"
 SCHEMA_MARKER = "aurora_tuning_simulator_owned:v1"
 SYSTEM_DATABASES = {"postgres", "template0", "template1", "rdsadmin"}
 GIB = 1024 ** 3
-MAX_TARGET_GIB = 100
+HARD_CEILING_GIB = 100
+MAX_TARGET_GIB = 98
+WORKLOAD_STOP_BYTES = 99 * GIB
+ESTIMATED_BYTES_PER_GROW_ROW = 12 * 1024
+MAX_SAFE_GROW_BATCH = 5000
 MAX_WORKERS = 32
 APP_PREFIX_RE = re.compile(r"^[A-Za-z0-9_.-]{1,48}$")
 ROOT = Path(__file__).resolve().parent
@@ -295,8 +299,19 @@ SELECT COALESCE(sum(pg_total_relation_size(c.oid)), 0)::bigint
     return int(client.run(sql, "progress") or "0")
 
 
-def grow_batch(client: Psql) -> None:
-    batch = client.config.batch_size
+def safe_growth_batch_size(config: Config, current_size: int) -> int:
+    remaining = min(config.target_bytes, WORKLOAD_STOP_BYTES) - current_size
+    if remaining <= 0:
+        return 0
+    budget_rows = max(1, remaining // ESTIMATED_BYTES_PER_GROW_ROW)
+    return min(config.batch_size, MAX_SAFE_GROW_BATCH, budget_rows)
+
+
+def grow_batch(client: Psql) -> bool:
+    current_size = simulator_size(client)
+    batch = safe_growth_batch_size(client.config, current_size)
+    if batch <= 0:
+        return False
     sql = settings_sql(client.config, "aurora_sim_growth") + """
 WITH new_customers AS (
     INSERT INTO aurora_tuning_simulator.customers
@@ -336,6 +351,7 @@ UPDATE aurora_tuning_simulator.simulator_state
         client.config.application_prefix.replace("'", "''"),
     )
     client.run(sql, "grow")
+    return True
 
 
 def workload_statements(config: Config) -> List[tuple]:
@@ -464,6 +480,10 @@ COMMIT;
         stop.wait(0.25)
 
 
+def insert_work_allowed(client: Psql) -> bool:
+    return simulator_size(client) < WORKLOAD_STOP_BYTES
+
+
 def churn_worker(client: Psql, worker_id: int, stop: threading.Event) -> None:
     rng = random.Random(os.urandom(16))
     statements = workload_statements(client.config)
@@ -471,6 +491,9 @@ def churn_worker(client: Psql, worker_id: int, stop: threading.Event) -> None:
     while not stop.is_set():
         _, name, sql, allow_timeout = rng.choice(population)
         try:
+            if name == "insert" and not insert_work_allowed(client):
+                stop.wait(1)
+                continue
             client.run(
                 sql,
                 "worker-{}".format(worker_id),
@@ -560,9 +583,15 @@ def run(config: Config) -> int:
     preflight(client)
     client.run_file(ROOT / "bootstrap.sql", "bootstrap")
     initial_size = simulator_size(client)
-    if initial_size > MAX_TARGET_GIB * GIB:
+    if initial_size >= HARD_CEILING_GIB * GIB:
         raise SimulatorError(
-            "existing simulator schema exceeds the {} GiB hard ceiling".format(MAX_TARGET_GIB)
+            "existing simulator schema has reached the {} GiB hard ceiling".format(
+                HARD_CEILING_GIB
+            )
+        )
+    if initial_size >= WORKLOAD_STOP_BYTES:
+        raise SimulatorError(
+            "existing simulator schema is inside the 1 GiB hard-ceiling guard margin"
         )
     print(
         "Simulator schema is {:.2f} GiB; target is {:.2f} GiB.".format(
@@ -591,7 +620,13 @@ def run(config: Config) -> int:
     try:
         current_size = initial_size
         while current_size < config.target_bytes and not stop.is_set():
-            grow_batch(client)
+            if current_size >= WORKLOAD_STOP_BYTES:
+                print("Safety guard reached; stopping all workload activity.", file=sys.stderr)
+                stop.set()
+                break
+            if not grow_batch(client):
+                stop.set()
+                break
             current_size = simulator_size(client)
             now = time.monotonic()
             if now - last_report >= 10:
@@ -610,13 +645,30 @@ def run(config: Config) -> int:
                     config.post_growth_seconds
                 )
             )
-            stop.wait(config.post_growth_seconds)
+            deadline = time.monotonic() + config.post_growth_seconds
+            while not stop.is_set() and time.monotonic() < deadline:
+                stop.wait(min(5, max(0, deadline - time.monotonic())))
+                current_size = simulator_size(client)
+                if current_size >= WORKLOAD_STOP_BYTES:
+                    print(
+                        "Safety guard reached during post-growth churn; stopping all activity.",
+                        file=sys.stderr,
+                    )
+                    stop.set()
+                    break
     finally:
         stop.set()
         for thread in threads:
             thread.join(timeout=config.statement_timeout_ms / 1000 + 12)
 
-    if stop.is_set() and simulator_size(client) < config.target_bytes:
+    final_size = simulator_size(client)
+    if final_size >= HARD_CEILING_GIB * GIB:
+        raise SimulatorError("simulator reached the physical hard ceiling; workload is stopped")
+    if final_size >= WORKLOAD_STOP_BYTES:
+        print("Safety guard reached; no further workload statements will run.", file=sys.stderr)
+        print_report(client)
+        return 2
+    if stop.is_set() and final_size < config.target_bytes:
         print("Stopped before target; rerun the same command to resume safely.")
         print_report(client)
         return 130
